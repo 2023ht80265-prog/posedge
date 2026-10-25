@@ -1,0 +1,2344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta property="og:type" content="website">
+<meta property="og:title" content="PosEdge APB Lab">
+<meta property="og:description" content="Learn the AMBA APB protocol and how to verify it: live waveforms, bug hunts, SystemVerilog assertions, constraints and drills. Free.">
+<meta property="og:image" content="https://2023ht80265-prog.github.io/posedge/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://2023ht80265-prog.github.io/posedge/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>PosEdge APB Lab</title>
+<meta name="description" content="Interactive APB protocol course: signals, state machine, live waveforms for APB2 to APB5, protocol checker, corner cases, SVA, constraints, coverage, exercises and a quiz.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: a fixed chapter rail beside a reading column; waveform panels break out to full width like instrument screens on a bench. */
+:root{
+  --bg:#f1f2ee; --surface:#ffffff; --surface-2:#e8eae4; --ink:#141b22; --muted:#58626c; --line:#d3d7cf;
+  --accent:#2b44c0; --accent-ink:#ffffff; --accent-soft:#e2e6fa;
+  --scope:#fbfbf8; --grid:#e2e4de; --code-bg:#eef0ea;
+  --s-clk:#5a646e; --s-ctrl:#2b44c0; --s-addr:#7a3dad; --s-wdata:#0b7867; --s-rdata:#b25800; --s-resp:#b22c4d;
+  --ok:#1d7a3c; --warn:#9c5c00; --err:#c22a2a; --ok-soft:#e0f1e5; --warn-soft:#faefd9; --err-soft:#fbe3e1;
+  --f-display:"Archivo","Arial Narrow",sans-serif; --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --f-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --r:8px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1215; --surface:#151a1f; --surface-2:#1c2329; --ink:#e5e8eb; --muted:#97a1aa; --line:#2a323a;
+  --accent:#8b9dff; --accent-ink:#0e1215; --accent-soft:#1d244a;
+  --scope:#0b0e11; --grid:#1b2229; --code-bg:#11161a;
+  --s-clk:#8a95a0; --s-ctrl:#8b9dff; --s-addr:#c69bf0; --s-wdata:#4fcfb3; --s-rdata:#f0a548; --s-resp:#ff7f99;
+  --ok:#5dcf88; --warn:#eeb349; --err:#ff6d6d; --ok-soft:#13301f; --warn-soft:#392b11; --err-soft:#3a1a1c;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1215; --surface:#151a1f; --surface-2:#1c2329; --ink:#e5e8eb; --muted:#97a1aa; --line:#2a323a;
+  --accent:#8b9dff; --accent-ink:#0e1215; --accent-soft:#1d244a;
+  --scope:#0b0e11; --grid:#1b2229; --code-bg:#11161a;
+  --s-clk:#8a95a0; --s-ctrl:#8b9dff; --s-addr:#c69bf0; --s-wdata:#4fcfb3; --s-rdata:#f0a548; --s-resp:#ff7f99;
+  --ok:#5dcf88; --warn:#eeb349; --err:#ff6d6d; --ok-soft:#13301f; --warn-soft:#392b11; --err-soft:#3a1a1c;
+  color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth;scroll-padding-top:20px}
+body{background:var(--bg);color:var(--ink);font:15.5px/1.62 var(--f-body);-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+code{font:0.88em var(--f-mono);background:var(--surface-2);padding:0.08em 0.35em;border-radius:4px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.muted{color:var(--muted)}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
+h3{font-size:19px;font-weight:700;font-stretch:85%;letter-spacing:0.005em}
+p{margin:0}
+.eyebrow{font:600 11.5px var(--f-mono);letter-spacing:0.14em;text-transform:uppercase;color:var(--muted)}
+
+/* ---------- shell ---------- */
+.app{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100%}
+.rail{position:sticky;top:env(safe-area-inset-top,0px);align-self:start;height:100vh;overflow-y:auto;padding:22px 16px 24px;border-right:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;gap:18px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+.brand svg{flex:none}
+.brand b{font:800 19px/1 var(--f-display);font-stretch:72%;letter-spacing:0.01em}
+.brand small{display:block;font:500 10.5px var(--f-mono);color:var(--muted);letter-spacing:0.08em;margin-top:3px}
+.rail nav{display:flex;flex-direction:column;gap:1px}
+.rail nav a{display:grid;grid-template-columns:26px 1fr;gap:4px;align-items:baseline;padding:5px 8px;border-radius:6px;color:var(--ink);text-decoration:none;font-size:14px}
+.rail nav a span{font:500 11px var(--f-mono);color:var(--muted)}
+.rail nav a:hover{background:var(--surface-2)}
+.rail nav a.active{background:var(--accent-soft);color:var(--accent)}
+.rail nav a.active span{color:var(--accent)}
+.rail .navgrp{font:600 10.5px var(--f-mono);letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);padding:12px 8px 4px}
+.prog{margin-top:auto;border-top:1px solid var(--line);padding-top:14px;display:grid;gap:6px;font-size:13px}
+.prog div{display:flex;justify-content:space-between}
+.prog b{font:600 13px var(--f-mono);font-variant-numeric:tabular-nums}
+main{min-width:0;padding-inline:clamp(16px,4vw,56px);padding-block:28px 96px}
+.wrap{max-width:1100px;margin-inline:auto}
+.prose{max-width:70ch}
+.prose > * + *{margin-top:0.85em}
+.stack{display:grid;gap:18px}
+
+/* ---------- hero ---------- */
+.hero{padding-block:24px 40px;display:grid;gap:22px}
+.hero h1{font-size:clamp(46px,8vw,92px);line-height:0.9;font-weight:800;font-stretch:66%;letter-spacing:-0.01em}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.lede{font-size:18px;max-width:62ch;color:var(--ink)}
+.specstrip{display:flex;flex-wrap:wrap;gap:6px 22px;font:500 12.5px var(--f-mono);color:var(--muted);margin:0;padding:0;list-style:none}
+.specstrip b{color:var(--ink);font-weight:600}
+#hero-ro{min-height:4.6em}
+
+/* ---------- sections ---------- */
+section{padding-block:60px 8px;border-top:1px solid var(--line);margin-top:20px}
+.sec-head{display:grid;gap:8px;margin-bottom:22px}
+.sec-no{font:600 12px var(--f-mono);color:var(--accent);letter-spacing:0.08em}
+h2{font-size:clamp(30px,4.4vw,44px);line-height:1;font-weight:800;font-stretch:70%;letter-spacing:-0.005em}
+.sec-head p{max-width:68ch;color:var(--muted);font-size:16px}
+.sub{margin-top:34px;margin-bottom:12px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:18px}
+.grid2 > *{min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.uvm-full{display:grid;gap:14px;border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.uf-head{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.uf-head>div{flex:1 1 320px;min-width:0}
+.uf-head h3{margin:4px 0 6px}
+.uf-head p{margin:0}
+.uf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px}
+.uf-files{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0}
+.uf-files code{font:500 12px var(--f-mono);padding:3px 7px;border-radius:4px;background:var(--surface-2);color:var(--ink)}
+.uf-tests{margin:6px 0 0;padding-left:18px;font-size:14px}
+.uf-tests li{margin:0 0 6px}
+.uf-tests code{font:500 12.5px var(--f-mono);display:block;width:fit-content;max-width:100%;overflow-wrap:anywhere;color:var(--accent)}
+.callout{background:var(--surface-2);border-radius:var(--r);padding:14px 16px;font-size:14.5px}
+.callout .tag{font:600 10.5px var(--f-mono);letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);margin-right:8px}
+ul.clean{margin:0;padding-left:1.1em}
+ul.clean li + li{margin-top:0.35em}
+
+/* ---------- buttons, controls ---------- */
+.btn{font:500 14px var(--f-body);padding:7px 14px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:6px;min-height:36px}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08);color:var(--accent-ink)}
+.btn[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.btn:disabled{opacity:0.45;cursor:not-allowed}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:var(--surface)}
+.seg button{font:500 13px var(--f-mono);border:0;background:transparent;color:var(--muted);padding:7px 12px;cursor:pointer;min-height:34px}
+.seg button + button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+label.field{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;color:var(--muted)}
+select,input[type="text"],input[type="number"],input:not([type]){font:500 13px var(--f-mono);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 8px;min-height:34px}
+input[type="number"]{width:4.6em}
+input.invalid{border-color:var(--err);background:var(--err-soft)}
+.switch{display:inline-flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;user-select:none}
+.switch input{appearance:none;width:34px;height:20px;border-radius:20px;background:var(--surface-2);border:1px solid var(--line);position:relative;cursor:pointer;margin:0;flex:none}
+.switch input::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--muted);transition:transform .15s}
+.switch input:checked{background:var(--accent);border-color:var(--accent)}
+.switch input:checked::after{transform:translateX(14px);background:var(--accent-ink)}
+.icon-btn{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:6px;width:30px;height:30px;cursor:pointer;font-size:16px;line-height:1}
+.icon-btn:hover:not(:disabled){color:var(--err);border-color:var(--err)}
+.icon-btn:disabled{opacity:.35;cursor:not-allowed}
+
+/* ---------- waveform ---------- */
+.wv-box{display:flex;border:1px solid var(--line);border-radius:var(--r);background:var(--scope);overflow:hidden}
+.wv-labels{flex:none;border-right:1px solid var(--line);background:var(--scope)}
+.wv-scroll{overflow-x:auto;flex:1;min-width:0;outline:none}
+.wv-scroll:focus-visible{box-shadow:inset 0 0 0 2px var(--accent)}
+.wv{display:block}
+.wv .grid{stroke:var(--grid);stroke-width:1}
+.wv .lane-sep{stroke:var(--grid);stroke-width:1;stroke-dasharray:2 3}
+.wv .tick{font:500 9.5px var(--f-mono);fill:var(--muted);text-anchor:middle}
+.wv .lbl{font:600 11px var(--f-mono);fill:var(--c,var(--ink))}
+.wv .lbl-ph{fill:var(--muted);font-weight:500;font-style:italic}
+.g-clk{--c:var(--s-clk)} .g-ctrl{--c:var(--s-ctrl)} .g-addr{--c:var(--s-addr)} .g-wdata{--c:var(--s-wdata)} .g-rdata{--c:var(--s-rdata)} .g-resp{--c:var(--s-resp)}
+.wv .tr{stroke:var(--c,var(--ink));stroke-width:1.7;fill:none;stroke-linecap:square}
+.wv .bus{stroke:var(--c,var(--ink));stroke-width:1.3;fill:color-mix(in srgb,var(--c,var(--ink)) 12%,transparent)}
+.wv .bus.bx{stroke:var(--muted);stroke-opacity:0.55}
+.wv .bus-t{font:500 10.5px var(--f-mono);fill:var(--c,var(--ink));text-anchor:middle}
+.wv .hatch-ln{stroke:var(--muted);stroke-width:1.1;stroke-opacity:0.5}
+.wv .xbox{stroke:var(--muted);stroke-opacity:0.4;stroke-width:1}
+.wv .ph{stroke:none}
+.wv .ph-t{font:600 9.5px var(--f-mono);fill:var(--ink);text-anchor:middle;letter-spacing:0.06em}
+.ph-IDLE{fill:var(--surface-2);background:var(--surface-2)}
+.ph-SETUP{fill:color-mix(in srgb,var(--s-ctrl) 20%,transparent);background:color-mix(in srgb,var(--s-ctrl) 20%,transparent)}
+.ph-ACCESS{fill:color-mix(in srgb,var(--ok) 26%,transparent);background:color-mix(in srgb,var(--ok) 26%,transparent)}
+.ph-WAIT{fill:color-mix(in srgb,var(--warn) 28%,transparent);background:color-mix(in srgb,var(--warn) 28%,transparent)}
+.ph-RESET{fill:color-mix(in srgb,var(--muted) 28%,transparent);background:color-mix(in srgb,var(--muted) 28%,transparent)}
+.ph-BAD{fill:color-mix(in srgb,var(--err) 34%,transparent);background:color-mix(in srgb,var(--err) 34%,transparent)}
+.wv .cur-band{fill:color-mix(in srgb,var(--accent) 9%,transparent)}
+.wv .cur-band.locked{fill:color-mix(in srgb,var(--accent) 16%,transparent)}
+.wv .cur-line{stroke:var(--accent);stroke-width:1.5}
+.wv .vband.error{fill:var(--err-soft)} .wv .vband.warn{fill:var(--warn-soft)}
+.wv .vmark.error{fill:var(--err)} .wv .vmark.warn{fill:var(--warn)}
+.wv .cell-hov{fill:none;stroke:var(--accent);stroke-width:2}
+.wv .hit{fill:transparent;cursor:crosshair}
+.editing .wv .hit{cursor:pointer}
+
+/* readout */
+.ro{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;min-width:0}
+.ro-empty{color:var(--muted);font-size:14px}
+.ro-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-bottom:6px}
+.ro-edge{font:500 12px var(--f-mono);color:var(--muted)}
+.ro-exp{font-size:14.5px;max-width:75ch}
+.chip{display:inline-block;font:600 10.5px var(--f-mono);letter-spacing:0.08em;padding:3px 8px;border-radius:4px;color:var(--ink)}
+.ro-viol{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px}
+.ro-viol li{font-size:13.5px;padding:7px 10px;border-radius:6px}
+.ro-viol li.error{background:var(--err-soft)} .ro-viol li.warn{background:var(--warn-soft)}
+.ro-viol b{font:600 11.5px var(--f-mono);margin-right:6px}
+.ro-viol li.error b{color:var(--err)} .ro-viol li.warn b{color:var(--warn)}
+.ro-vals{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:4px 16px;margin:12px 0 0;font:13px var(--f-mono)}
+.ro-vals div{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted var(--line);padding-block:2px}
+.ro-vals dt{color:var(--c,var(--ink));font-weight:600}
+.ro-vals dd{margin:0;font-variant-numeric:tabular-nums}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font:12px var(--f-mono);color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:16px;height:10px;border-radius:2px;display:inline-block}
+
+/* ---------- tables ---------- */
+.tscroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+table.tbl{border-collapse:collapse;width:100%;font-size:14px}
+.tbl th{font:600 11px var(--f-mono);letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);background:var(--surface-2);white-space:nowrap}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td.sig{font:600 13px var(--f-mono);white-space:nowrap}
+.tbl td.mono{font:13px var(--f-mono);white-space:nowrap}
+.tbl .ver{font:600 11px var(--f-mono);padding:2px 6px;border-radius:4px;background:var(--surface-2);white-space:nowrap}
+#sig-table tr.na{opacity:0.32}
+#sig-table tr.new td{background:var(--accent-soft)}
+td.yes{color:var(--ok);font-weight:700} td.no{color:var(--muted)}
+
+/* ---------- FSM ---------- */
+.fsm{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;align-items:start}
+.fsm-diagram{background:var(--scope);border:1px solid var(--line);border-radius:var(--r);padding:8px}
+#fsm-svg{width:100%;height:auto;display:block}
+.fsm-state circle{fill:var(--surface);stroke:var(--line);stroke-width:2;transition:fill .2s,stroke .2s}
+.fsm-state text{font:800 17px var(--f-display);font-stretch:75%;fill:var(--ink);text-anchor:middle}
+.fsm-state .sub{font:500 10px var(--f-mono);fill:var(--muted);font-stretch:100%}
+.fsm-state.on circle{fill:var(--accent);stroke:var(--accent)}
+.fsm-state.on text{fill:var(--accent-ink)}
+.fsm-arc path{fill:none;stroke:var(--muted);stroke-width:1.6;stroke-opacity:0.6}
+.fsm-arc text{font:500 10.5px var(--f-mono);fill:var(--muted)}
+.fsm-arc.next path{stroke:var(--accent);stroke-width:2.6;stroke-opacity:1}
+.fsm-arc.next text{fill:var(--accent);font-weight:600}
+.fsm-arc.next path{marker-end:url(#fa-on)}
+.arrowhead{fill:var(--muted)}
+.fsm-controls{display:grid;gap:14px}
+.fsm-controls .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#fsm-now p + p{margin-top:6px}
+.fsm-next{font-size:14px}
+.qchip{font:600 12px var(--f-mono);padding:3px 8px;border-radius:4px;margin-right:4px}
+.qchip.w{background:color-mix(in srgb,var(--s-wdata) 18%,transparent);color:var(--s-wdata)}
+.qchip.r{background:color-mix(in srgb,var(--s-rdata) 18%,transparent);color:var(--s-rdata)}
+#fsm-log{font:12.5px var(--f-mono);margin:0;padding-left:0;list-style:none;display:grid;gap:3px;color:var(--ink)}
+#fsm-log li:first-child{color:var(--accent);font-weight:600}
+.lbl-sm{font:600 11px var(--f-mono);letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;display:block}
+
+/* ---------- lab ---------- */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;padding:12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r) var(--r) 0 0;border-bottom:0}
+.toolbar .grow{flex:1}
+#lab-preset{max-width:100%}
+#lab-stage{position:relative}
+#lab-stage .wv-box{border-radius:0 0 var(--r) var(--r)}
+.lab-status{font:600 12.5px var(--f-mono);padding:4px 10px;border-radius:5px}
+.lab-status.ok{background:var(--ok-soft);color:var(--ok)}
+.lab-status.warn{background:var(--warn-soft);color:var(--warn)}
+.lab-status.bad{background:var(--err-soft);color:var(--err)}
+.badge{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;font-size:13.5px;padding:9px 12px;border-radius:6px;background:var(--warn-soft);margin-top:10px}
+.pop{position:absolute;z-index:5;background:var(--surface);border:1px solid var(--accent);border-radius:8px;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);display:grid;gap:8px;width:250px}
+.pop label{font-size:12.5px;color:var(--muted)}
+.pop .row{display:flex;gap:6px}
+.pop input{flex:1;min-width:0}
+.txtable input.hex{width:7.5em} .txtable input.wide{width:8.5em} .txtable input.bin{width:4.4em}
+.txtable td{padding:6px 8px;vertical-align:middle}
+.txtable td.num{font:600 12px var(--f-mono);color:var(--muted)}
+.txtable td.ctr{text-align:center}
+.tx-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+
+/* ---------- versions ---------- */
+.timeline{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--surface)}
+.timeline div{padding:14px;border-right:1px solid var(--line)}
+.timeline div:last-child{border-right:0}
+.timeline b{display:block;font:800 26px/1 var(--f-display);font-stretch:68%}
+.timeline span{font:500 12px var(--f-mono);color:var(--muted)}
+.timeline p{font-size:13.5px;margin-top:6px}
+.vcard{border-top:1px solid var(--line);padding-top:26px;margin-top:26px;display:grid;gap:14px}
+.vcard-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px}
+.vcard-head h3{font-size:30px;font-stretch:68%;font-weight:800}
+.vcard-head .meta{font:500 12.5px var(--f-mono);color:var(--muted)}
+.vcard-head .btn{margin-left:auto}
+.added{display:flex;flex-wrap:wrap;gap:6px}
+.added code{font-weight:600;background:var(--accent-soft);color:var(--accent)}
+.ver-ro{min-height:4.2em}
+
+/* ---------- rules, corner cases, bugs ---------- */
+.rule-id{font:600 12px var(--f-mono);color:var(--accent);white-space:nowrap}
+.sev{font:600 11px var(--f-mono);padding:2px 6px;border-radius:4px;white-space:nowrap}
+.sev.e{background:var(--err-soft);color:var(--err)} .sev.w{background:var(--warn-soft);color:var(--warn)}
+.cc-group{margin-top:26px}
+.cc-group > h3{margin-bottom:10px}
+.cc{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:12px}
+.cc article{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:grid;gap:6px;align-content:start}
+.cc article h4{margin:0;font:600 15px var(--f-body)}
+.cc article p{font-size:14px;color:var(--ink)}
+.cc article .how{font-size:13px;color:var(--muted)}
+.cc article .how b{font:600 10.5px var(--f-mono);letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);margin-right:6px}
+.bug{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:0;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden}
+.bug + .bug{margin-top:10px}
+.bug > div{padding:12px 14px;border-right:1px solid var(--line);font-size:14px}
+.bug > div:last-child{border-right:0}
+.bug .k{font:600 10.5px var(--f-mono);letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px}
+.bug h4{margin:0 0 4px;font:600 15px var(--f-body)}
+
+/* ---------- code ---------- */
+figure.code{margin:0;border:1px solid var(--line);border-radius:var(--r);background:var(--code-bg);overflow:hidden;min-width:0}
+figure.code figcaption{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 10px 7px 14px;border-bottom:1px solid var(--line);font:600 11.5px var(--f-mono);color:var(--muted);letter-spacing:0.04em}
+figure.code .copy{font:500 12px var(--f-mono);border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:5px;padding:3px 10px;cursor:pointer}
+figure.code pre{margin:0;padding:14px 16px;overflow-x:auto;font:12.8px/1.6 var(--f-mono);tab-size:2}
+figure.code code{background:none;padding:0;font:inherit}
+.t-k{color:var(--s-ctrl);font-weight:600} .t-c{color:var(--muted);font-style:italic} .t-s{color:var(--s-wdata)} .t-m{color:var(--s-addr)} .t-f{color:var(--s-rdata)} .t-n{color:var(--s-wdata)} .t-o{color:var(--s-resp);font-weight:600} .t-p{color:var(--s-addr)}
+
+/* ---------- exercises ---------- */
+.pz{display:grid;gap:12px}
+.pz-head{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
+.pz-head h3{font-size:22px;font-stretch:75%}
+#pz-nav{display:flex;flex-wrap:wrap;gap:6px}
+#pz-nav button{font:600 12.5px var(--f-mono);width:34px;height:34px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+#pz-nav button.done{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+#pz-nav button.cur{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.pz-fb{padding:11px 14px;border-radius:6px;background:var(--surface-2);font-size:14.5px}
+.pz-fb.ok{background:var(--ok-soft)} .pz-fb.no{background:var(--err-soft)} .pz-fb.shown{background:var(--accent-soft)}
+.pz-actions{display:flex;flex-wrap:wrap;gap:8px}
+details.ex{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+details.ex + details.ex{margin-top:10px}
+details.ex > summary{list-style:none;cursor:pointer;padding:14px 16px;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:baseline}
+details.ex > summary::-webkit-details-marker{display:none}
+details.ex > summary .exn{font:600 12px var(--f-mono);color:var(--accent)}
+details.ex > summary .lvl{justify-self:end}
+details.ex > summary h4{margin:0;font:600 15.5px var(--f-body)}
+details.ex[open] > summary{border-bottom:1px solid var(--line)}
+.ex-body{padding:14px 16px 18px;display:grid;gap:12px}
+.ex-body details > summary{cursor:pointer;font:600 13px var(--f-mono);color:var(--accent)}
+.ex-body details[open] > summary{margin-bottom:10px}
+.ex-foot{display:flex;justify-content:flex-end}
+.lvl{font:600 10.5px var(--f-mono);letter-spacing:0.08em;text-transform:uppercase;padding:2px 7px;border-radius:4px;white-space:nowrap}
+.lvl-b{background:var(--ok-soft);color:var(--ok)} .lvl-i{background:var(--warn-soft);color:var(--warn)} .lvl-a{background:var(--err-soft);color:var(--err)}
+ol.tasks{margin:0;padding:0;list-style:none;display:grid;gap:10px;counter-reset:t}
+ol.tasks li{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start;font-size:14.5px}
+ol.tasks li::before{counter-increment:t;content:"L" counter(t);font:600 12px var(--f-mono);color:var(--accent);padding-top:2px}
+.chk{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.chk input{accent-color:var(--accent);width:16px;height:16px}
+
+/* ---------- quiz ---------- */
+.quiz{max-width:780px}
+.qz-top{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font:500 12.5px var(--f-mono);color:var(--muted)}
+.qz-score{margin-left:auto;font-variant-numeric:tabular-nums}
+.qz-bar{height:4px;background:var(--surface-2);border-radius:4px;margin:12px 0 18px;overflow:hidden}
+.qz-bar i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.qz-q{font:600 18px/1.4 var(--f-body);margin-bottom:14px}
+.qz-opts{display:grid;gap:8px}
+.qz-opt{all:unset;box-sizing:border-box;display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:baseline;padding:11px 14px;border:1px solid var(--line);border-radius:7px;cursor:pointer;font-size:15px;background:var(--surface)}
+.qz-opt:hover:not(:disabled){border-color:var(--accent)}
+.qz-opt:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.qz-opt:disabled{cursor:default}
+.qz-key{font:600 12px var(--f-mono);color:var(--muted)}
+.qz-opt.right{border-color:var(--ok);background:var(--ok-soft)}
+.qz-opt.wrong{border-color:var(--err);background:var(--err-soft)}
+.qz-exp{margin-top:14px;padding:12px 14px;border-radius:7px;font-size:14.5px}
+.qz-exp.ok{background:var(--ok-soft)} .qz-exp.no{background:var(--err-soft)}
+.qz-nav{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.qz-big{font:800 56px/1 var(--f-display);font-stretch:68%;margin-bottom:6px}
+.qz-review{margin-top:14px}
+.qz-review summary{cursor:pointer;font-weight:600}
+.qz-review ol{padding-left:1.2em;display:grid;gap:10px;margin-top:10px}
+
+
+/* ---------- onboarding: facts, roadmap, three lines ---------- */
+.facts{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:10px}
+.facts li{display:flex;align-items:baseline;gap:8px;padding:10px 16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.facts b{font:800 32px/1 var(--f-display);font-stretch:66%;color:var(--accent);font-variant-numeric:tabular-nums}
+.facts span{font-size:13.5px;color:var(--muted)}
+.road{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.stage{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:8px;align-content:start;min-width:0}
+.stage.current{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.stage-top{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 8px;font:600 10.5px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.stage.current .stage-n{color:var(--accent)}
+.stage.complete .stage-n{color:var(--ok)}
+.stage h3{font-size:26px;font-stretch:68%;font-weight:800}
+.stage > p{font-size:13.5px;color:var(--muted)}
+.stage ol{list-style:none;margin:4px 0 0;padding:0;display:grid}
+.stage li{display:flex;justify-content:space-between;gap:8px;font-size:14px;padding:4px 0;border-bottom:1px dotted var(--line)}
+.stage li a{color:var(--ink);text-decoration:none}
+.stage li a:hover{color:var(--accent);text-decoration:underline}
+.stage li span{font:12px var(--f-mono);color:var(--muted);white-space:nowrap}
+.stage li.done a::before{content:"✓ ";color:var(--ok);font-weight:700}
+.stage-bar{height:4px;background:var(--surface-2);border-radius:4px;overflow:hidden;margin-top:6px}
+.stage-bar i{display:block;height:100%;background:var(--ok);transition:width .3s}
+.road-cta{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;margin-top:18px}
+.btn.big{font-size:16px;padding:11px 22px;min-height:48px;font-weight:600}
+.howto{list-style:none;margin:22px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px}
+.howto li{font-size:14px;padding:12px 14px;background:var(--surface-2);border-radius:var(--r)}
+.howto b{display:block;margin-bottom:2px}
+kbd{font:600 11.5px var(--f-mono);padding:1px 6px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;background:var(--surface)}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.three-l{font:800 clamp(28px,3.8vw,40px)/1.05 var(--f-display);font-stretch:70%;padding:18px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);display:grid;gap:8px;align-content:start}
+.three-l span{color:var(--c);font:600 0.62em var(--f-mono);letter-spacing:.02em}
+.three-l small{font:400 13.5px/1.45 var(--f-body);color:var(--muted)}
+.three-sum{font-size:17px;margin:16px 0 22px;max-width:68ch}
+.try{display:grid;gap:10px;margin-bottom:12px}
+#hero-ro{min-height:4.6em}
+
+/* ---------- chapter time chip and end bar ---------- */
+.sec-time{font:500 11px var(--f-mono);color:var(--muted);letter-spacing:.02em;margin-left:8px;padding:2px 8px;border:1px solid var(--line);border-radius:20px;white-space:nowrap}
+.sec-end{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;margin-top:36px;padding:16px 18px;border-radius:var(--r);background:var(--accent-soft)}
+.remember{font-size:15.5px;max-width:70ch;color:var(--ink);flex:1 1 300px}
+.remember span{display:block;font:600 10.5px var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:3px}
+.btn.primary.is-done{background:var(--surface);color:var(--accent);border-color:var(--accent)}
+.rail nav a{grid-template-columns:26px 1fr auto}
+.rail nav a.done::after{content:"✓";color:var(--ok);font-weight:700;font-size:12px}
+.prog-bar{height:5px;background:var(--surface-2);border-radius:4px;overflow:hidden}
+.prog-bar i{display:block;height:100%;background:var(--ok);width:0;transition:width .3s}
+
+/* ---------- lab modes ---------- */
+.modes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.modes button{all:unset;box-sizing:border-box;cursor:pointer;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);display:grid;gap:2px;min-width:0}
+.modes button b{font:800 17px var(--f-display);font-stretch:78%;color:var(--ink)}
+.modes button small{font-size:12.5px;color:var(--muted)}
+.modes button:hover{border-color:var(--accent)}
+.modes button[aria-selected="true"]{background:var(--accent);border-color:var(--accent)}
+.modes button[aria-selected="true"] b,.modes button[aria-selected="true"] small{color:var(--accent-ink)}
+.modes button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.playback{display:flex;gap:6px}
+.lab-status.info{background:var(--accent-soft);color:var(--accent)}
+#lab-readout{margin-top:12px}
+.lab-work{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:16px;margin-top:14px;align-items:start}
+.lab-work.one{grid-template-columns:minmax(0,1fr)}
+.lab-work.one .lab-asserts{display:none}
+.lab-mode{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-width:0}
+.mpanel{display:grid;gap:12px;align-content:start;min-width:0}
+.m-intro{font-size:14.5px}
+.small{font-size:13px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{font:500 13px var(--f-body);padding:6px 12px;border-radius:20px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;min-height:32px}
+.chips button:hover{border-color:var(--accent)}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.tip{font-size:14.5px;padding:12px 14px;background:var(--surface-2);border-radius:6px}
+.tip b{display:block;font:600 11px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:3px}
+.linkbtn{all:unset;cursor:pointer;color:var(--accent);font-size:13.5px;text-decoration:underline;text-underline-offset:3px}
+.linkbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.legend i.lg-dot{width:9px;height:9px;border-radius:50%;background:var(--accent)}
+.legend i.lg-x{background:none;color:var(--err);font-style:normal;font-weight:700;width:auto;height:auto}
+
+/* waveform assertion band */
+.wv .mk-trig{fill:var(--accent)}
+.wv .mk-fail{stroke:var(--err);stroke-width:2.4;stroke-linecap:round;fill:none}
+.wv .mk-link{stroke:var(--err);stroke-width:1.4;stroke-dasharray:3 2}
+.wv .lbl-mk{fill:var(--muted);font-weight:500;font-style:italic}
+
+/* bug picker and bug card */
+.bp-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 16px}
+.bp-top .m-intro{flex:1 1 320px}
+.bp-grp{display:grid;gap:6px}
+.bp-grp + .bp-grp{margin-top:10px}
+.bp-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr));gap:6px}
+.bp{all:unset;box-sizing:border-box;cursor:pointer;padding:9px 11px;border:1px solid var(--line);border-radius:7px;background:var(--surface);display:grid;gap:3px;font-size:13.5px;line-height:1.35}
+.bp small{font:600 10px var(--f-mono);color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.bp:hover{border-color:var(--err)}
+.bp.found{border-color:color-mix(in srgb,var(--ok) 55%,transparent);background:color-mix(in srgb,var(--ok-soft) 60%,var(--surface))}
+.bp.found small::after{content:" · caught ✓";color:var(--ok)}
+.bp:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.bug-card{display:grid;gap:12px}
+.bc-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bc-who{font:600 10.5px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--err);background:var(--err-soft);padding:3px 8px;border-radius:4px}
+.bug-card h3{font-size:24px;font-stretch:74%}
+.bc-q{font-size:15px;margin-top:2px}
+.bc-opts{display:grid;gap:6px}
+.bc-opt{all:unset;box-sizing:border-box;cursor:pointer;padding:10px 12px;border:1px solid var(--line);border-radius:7px;display:grid;gap:3px;font-size:13.5px;background:var(--surface)}
+.bc-opt code{background:none;padding:0;font-weight:600;color:var(--accent);font-size:13px}
+.bc-opt:hover{border-color:var(--accent);background:var(--accent-soft)}
+.bc-opt:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.bc-verdict{padding:10px 12px;border-radius:6px;font-size:14.5px}
+.bc-verdict.ok{background:var(--ok-soft)} .bc-verdict.no{background:var(--err-soft)} .bc-verdict.info{background:var(--accent-soft)}
+.bc-why,.bc-fix{font-size:14.5px}
+.bc-actions{display:flex;flex-wrap:wrap;gap:8px}
+figure.code.mini figcaption{padding:5px 12px}
+figure.code.mini pre{font-size:12px;padding:10px 12px}
+.as-tag{font:600 10px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:4px;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+
+/* assertion panel */
+.lab-asserts{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;min-width:0;display:grid;gap:8px;align-content:start}
+.as-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;align-items:baseline}
+#as-sum{font:500 12px var(--f-mono)}
+#as-sum .ok{color:var(--ok)} #as-sum .bad{color:var(--err)}
+#as-list{list-style:none;margin:0;padding:0;display:grid;gap:3px;max-height:620px;overflow:auto}
+.as > button{all:unset;box-sizing:border-box;cursor:pointer;width:100%;display:grid;grid-template-columns:54px minmax(0,1fr);gap:10px;padding:7px 8px;border-radius:6px;align-items:start}
+.as > button:hover{background:var(--surface-2)}
+.as > button:focus-visible{outline:2px solid var(--accent)}
+.as-st{font:700 10.5px var(--f-mono);letter-spacing:.06em;padding:4px 0 3px;border-radius:4px;text-align:center;display:grid;line-height:1.2}
+.as-st small{font-weight:500;font-size:10px}
+.as.fail .as-st{background:var(--err-soft);color:var(--err)}
+.as.warn .as-st{background:var(--warn-soft);color:var(--warn)}
+.as.pass .as-st{background:var(--ok-soft);color:var(--ok)}
+.as.vac .as-st{background:var(--surface-2);color:var(--muted)}
+.as-main{display:flex;flex-wrap:wrap;gap:3px 8px;align-items:baseline;min-width:0}
+.as-main code{background:none;padding:0;font-weight:600;font-size:12.5px;overflow-wrap:anywhere}
+.as-m{flex-basis:100%;font-size:12.5px;color:var(--muted)}
+.as.sel > button{background:var(--accent-soft)}
+.as-detail{padding:6px 8px 12px 72px;display:grid;gap:8px;font-size:13px}
+.as-detail pre{margin:0;padding:10px;background:var(--code-bg);border:1px solid var(--line);border-radius:6px;overflow-x:auto;font:12px/1.5 var(--f-mono)}
+.as-detail pre code{background:none;padding:0}
+.as-hidden{font-size:14px;color:var(--muted);padding:12px;background:var(--surface-2);border-radius:6px}
+
+/* randomize panel */
+.rc-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.rc-list li{display:grid;gap:3px;padding:8px 10px;border-radius:6px;background:var(--surface-2);border:1px solid transparent}
+.rc-list li.off{background:var(--warn-soft);border-color:color-mix(in srgb,var(--warn) 40%,transparent)}
+.rc-list li.na{opacity:.5}
+.rc-list label code{background:none;padding:0;font-weight:600;color:var(--ink);font-size:13px}
+.rc-why{font-size:12px;color:var(--muted);margin-left:auto}
+.rc-list .switch{width:100%}
+.rc-list .rc-code{font-size:11.5px;background:none;padding:0 0 0 42px;color:var(--muted);overflow-wrap:anywhere}
+.switch.sm input{width:30px;height:18px}
+.switch.sm input::after{width:12px;height:12px}
+.switch.sm input:checked::after{transform:translateX(12px)}
+.rc-run{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#rc-seed{width:6.5em}
+.rc-notes{display:grid;gap:6px}
+.rc-notes p{font-size:13.5px;padding:8px 11px;border-radius:6px;background:var(--surface-2)}
+.rc-notes p.bad{background:var(--err-soft)} .rc-notes p.warn{background:var(--warn-soft)} .rc-notes p.ok{background:var(--ok-soft)}
+.rc-res th,.rc-res td{padding:6px 9px;font:12.5px var(--f-mono);white-space:nowrap}
+.rc-res th{font-size:10.5px}
+.rc-res td.bad{background:var(--err-soft);color:var(--err);font-weight:600}
+.rc-res td.amb{background:var(--warn-soft);color:var(--warn);font-weight:600}
+.cov{display:grid;gap:8px;padding-top:12px;border-top:1px solid var(--line)}
+.cov-head{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline}
+#cov-total{font:600 13px var(--f-mono);margin-left:auto;font-variant-numeric:tabular-nums}
+.cov-bar{height:6px;background:var(--surface-2);border-radius:4px;overflow:hidden}
+.cov-bar i{display:block;height:100%;background:var(--ok);width:0;transition:width .3s}
+#cov-grid{display:grid;gap:6px}
+.cv-row{display:grid;grid-template-columns:76px minmax(0,1fr) 38px;gap:8px;align-items:center}
+.cv-row > code{background:none;padding:0;font-size:11.5px;font-weight:600}
+.cv-bins{display:flex;flex-wrap:wrap;gap:4px}
+.cv-bin{display:inline-flex;gap:5px;align-items:baseline;font:11px var(--f-mono);padding:3px 7px;border-radius:4px;background:var(--surface);color:var(--muted);border:1px dashed var(--line)}
+.cv-bin b{font-weight:600}
+.cv-bin.hit{background:var(--ok-soft);color:var(--ok);border:1px solid color-mix(in srgb,var(--ok) 40%,transparent)}
+.cv-pct{font:600 12px var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}
+
+/* golden rules */
+.golden{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:12px}
+.golden article{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:8px;align-content:start}
+.gn{font:800 46px/0.85 var(--f-display);font-stretch:62%;color:var(--accent)}
+.golden h3{font-size:21px;font-stretch:74%}
+.golden p{font-size:14px}
+.gk{display:flex;flex-wrap:wrap;gap:4px}
+.gk code{font-size:11px}
+.btn.sm{font-size:13px;padding:5px 11px;min-height:32px;justify-self:start}
+details.lab-table{margin-top:20px}
+details.lab-table > summary{cursor:pointer;font:800 20px var(--f-display);font-stretch:76%;padding:6px 0;margin-bottom:10px}
+details.lab-table > summary .muted{font:400 14px var(--f-body)}
+.qbox{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;margin-top:14px}
+.qbox:first-child{margin-top:0}
+
+@media (max-width: 1000px){
+  .road{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .lab-work{grid-template-columns:minmax(0,1fr)}
+  .modes{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width: 640px){
+  .three{grid-template-columns:minmax(0,1fr)}
+  .road{grid-template-columns:minmax(0,1fr)}
+  .as-detail{padding-left:8px}
+  .facts b{font-size:26px}
+}
+
+/* ---------- lab steps ---------- */
+.lab-step{display:grid;gap:12px;grid-template-columns:minmax(0,1fr);padding-block:20px 6px}
+.lab-step + .lab-step{border-top:1px dashed var(--line);margin-top:16px}
+.step-h{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.step-n{flex:none;width:36px;height:36px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font:800 19px/36px var(--f-display);text-align:center}
+.step-h > div{flex:1 1 300px;min-width:0}
+.step-h h3{font-size:24px;font-stretch:72%}
+.step-h p{font-size:14.5px;color:var(--muted);max-width:72ch}
+.now{font:500 12.5px var(--f-mono);padding:6px 10px;border-radius:6px;background:var(--accent-soft);color:var(--accent);align-self:center;max-width:100%;overflow-wrap:anywhere}
+.scn{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:14px}
+.scn-g{display:grid;gap:6px;align-content:start}
+.scn-list{display:grid;gap:6px}
+.scn-b{all:unset;box-sizing:border-box;cursor:pointer;padding:9px 12px;border:1px solid var(--line);border-radius:7px;background:var(--surface);display:grid;gap:1px}
+.scn-b b{font-size:14px;font-weight:600}
+.scn-b small{font-size:12.5px;color:var(--muted)}
+.scn-b:hover{border-color:var(--accent)}
+.scn-b:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.scn-b[aria-pressed="true"]{border-color:var(--accent);background:var(--accent);}
+.scn-b[aria-pressed="true"] b,.scn-b[aria-pressed="true"] small{color:var(--accent-ink)}
+.scn-b[aria-pressed="true"] b::after{content:"  ✓"}
+
+/* ---------- apply an assertion ---------- */
+.ap{display:grid;grid-template-columns:minmax(0,0.85fr) minmax(0,1.35fr);gap:20px;align-items:start}
+.ap-pick-wrap{display:grid;gap:12px}
+.ap-g{display:grid;gap:6px}
+.ap-g + .ap-g{margin-top:12px}
+.ap-list{display:flex;flex-wrap:wrap;gap:5px}
+.apc{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border:1px solid var(--line);border-radius:6px;background:var(--surface);font:500 12px var(--f-mono);color:var(--ink)}
+.apc code{background:none;padding:0;font-size:12px}
+.apc small{font-size:10px;color:var(--muted)}
+.apc .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.apc.pass .dot{background:var(--ok)} .apc.fail .dot{background:var(--err)} .apc.warn .dot{background:var(--warn)} .apc.vac .dot{background:transparent;box-shadow:inset 0 0 0 1.5px var(--muted)}
+.apc:hover:not(:disabled){border-color:var(--accent)}
+.apc.on{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
+.apc.on .dot{box-shadow:0 0 0 2px var(--accent-ink)}
+.apc:disabled{opacity:.45;cursor:not-allowed}
+.apc:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.ap-key{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);margin-top:12px}
+.ap-key span{display:inline-flex;align-items:center;gap:5px}
+.ap-key i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.ap-key .k-pass{background:var(--ok)} .ap-key .k-fail{background:var(--err)} .ap-key .k-warn{background:var(--warn)} .ap-key .k-vac{box-shadow:inset 0 0 0 1.5px var(--muted)}
+.ap-card{display:grid;gap:12px;min-width:0;align-content:start}
+.ap-empty{padding:18px;border:1px dashed var(--line);border-radius:var(--r);display:grid;gap:6px;font-size:14.5px}
+.ap-head{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.ap-name{font:700 15px var(--f-mono);background:none;padding:0}
+.sug{font:600 10.5px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.ap-st{margin-left:auto;font:700 11px var(--f-mono);letter-spacing:.06em;padding:4px 9px;border-radius:4px}
+.ap-st.pass{background:var(--ok-soft);color:var(--ok)} .ap-st.fail{background:var(--err-soft);color:var(--err)} .ap-st.warn{background:var(--warn-soft);color:var(--warn)} .ap-st.vac{background:var(--surface-2);color:var(--muted)}
+.ap-plain{font:600 19px/1.35 var(--f-body);text-wrap:balance}
+.ap-flow{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:stretch}
+.ap-box{background:var(--surface-2);border-radius:7px;padding:10px 12px;display:grid;gap:4px;min-width:0;align-content:start}
+.ap-box span{font:600 10.5px var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.ap-box code{background:none;padding:0;font-size:12.5px;overflow-wrap:anywhere}
+.ap-arrow{display:grid;place-content:center;text-align:center;padding:0 2px;gap:1px}
+.ap-arrow b{font:700 13px var(--f-mono);color:var(--accent)}
+.ap-arrow b::after{content:" →"}
+.ap-arrow small{font-size:11.5px;color:var(--muted)}
+.ap-res{font-size:14.5px;display:grid;gap:10px;padding:12px 14px;border-radius:7px;background:var(--surface-2)}
+.ap-res.fail{background:var(--err-soft)} .ap-res.warn{background:var(--warn-soft)} .ap-res.pass{background:var(--ok-soft)}
+.ap-step{display:flex;align-items:center;gap:8px;font:500 12.5px var(--f-mono)}
+.ap-att{font-size:14.5px}
+.okc{color:var(--ok)} .badc{color:var(--err)}
+.ap-break{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;font-size:13.5px;color:var(--muted)}
+.wv .mk-cur{fill:none;stroke:var(--accent);stroke-width:2}
+
+/* ---------- apply constraints ---------- */
+.cons{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:20px;align-items:start}
+.cons-run{display:grid;gap:12px;min-width:0}
+.cc-list{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:8px}
+.cc-card{border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:grid;gap:5px;background:var(--surface)}
+.cc-card.off{background:var(--warn-soft);border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
+.cc-card.na{opacity:.6}
+.cc-top{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.cc-top code{background:none;padding:0;font-weight:600;font-size:13px}
+.cc-state{font:600 10.5px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ok)}
+.cc-card.off .cc-state{color:var(--warn)} .cc-card.na .cc-state{color:var(--muted)}
+.cc-plain{font-size:14px}
+.cc-card .rc-code{font-size:11.5px;background:none;padding:0;color:var(--muted);overflow-wrap:anywhere}
+.cc-if{font-size:12.5px;color:var(--muted)}
+.cc-card.off .cc-if{color:var(--ink)}
+.exps{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr));gap:6px;margin-top:6px}
+.exp{all:unset;box-sizing:border-box;cursor:pointer;padding:9px 11px;border:1px solid var(--line);border-radius:7px;display:grid;gap:2px;background:var(--surface)}
+.exp b{font-size:13.5px}
+.exp small{font:11px var(--f-mono);color:var(--muted)}
+.exp:hover{border-color:var(--accent);background:var(--accent-soft)}
+.exp:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.rc-notes p.info{background:var(--accent-soft)}
+.rc-res td.chg{box-shadow:inset 0 0 0 2px var(--accent);font-weight:700}
+.edit-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:16px}
+.edit-fails{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:6px}
+.edit-fails li{font-size:13.5px;padding:8px 10px;border-radius:6px;background:var(--err-soft)}
+.edit-fails li.warn{background:var(--warn-soft)} .edit-fails li.ok{background:var(--ok-soft)}
+.edit-fails code{background:none;padding:0;font-weight:600}
+@media (max-width: 1000px){ .ap,.cons{grid-template-columns:minmax(0,1fr)} }
+@media (max-width: 560px){ .ap-flow{grid-template-columns:minmax(0,1fr)} .ap-arrow b::after{content:" ↓"} }
+
+@media (max-width: 640px){
+  .scn{gap:10px}
+  .scn-list{display:flex;flex-wrap:wrap;gap:6px}
+  .scn-b{padding:7px 11px}
+  .scn-b small{display:none}
+}
+
+/* ---------- build your own assertion ---------- */
+.bd-row{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,0.9fr) minmax(0,1.2fr);gap:10px}
+.bd-f{display:grid;gap:4px;min-width:0}
+.bd-f span{font:600 10.5px var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.bd-f select{width:100%;font-size:13px}
+.bd-op select{color:var(--accent);font-weight:600}
+.bd-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+.bd-lib{font-size:13.5px;padding:6px 10px;border-radius:6px;background:var(--accent-soft)}
+.bd-all{display:grid;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:7px}
+.bd-score{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.bd-score div{padding:8px 10px;border-radius:6px;display:grid;gap:1px}
+.bd-score b{font:800 28px/1 var(--f-display);font-stretch:70%;font-variant-numeric:tabular-nums}
+.bd-score span{font-size:12.5px;color:var(--muted)}
+.bd-score .ok{background:var(--ok-soft)} .bd-score .ok b{color:var(--ok)}
+.bd-score .bad{background:var(--err-soft)} .bd-score .bad b{color:var(--err)}
+.bd-score .warn{background:var(--warn-soft)} .bd-score .warn b{color:var(--warn)}
+.bd-v{font-size:14px}
+.chipline{display:flex;flex-wrap:wrap;gap:5px}
+.chip-b{font:500 12px var(--f-body);padding:4px 9px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.chip-b.bad{border-color:color-mix(in srgb,var(--err) 50%,transparent)} .chip-b.ok{border-color:color-mix(in srgb,var(--ok) 50%,transparent)}
+.chip-b:hover{border-color:var(--accent)}
+.bd-chal{display:grid;gap:8px;padding-top:12px;border-top:1px solid var(--line)}
+#bd-ch{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:8px}
+#bd-ch li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:7px;font-size:13.5px;background:var(--surface)}
+#bd-ch li.done{border-color:color-mix(in srgb,var(--ok) 50%,transparent);background:color-mix(in srgb,var(--ok-soft) 55%,var(--surface))}
+#bd-ch li.is-now{box-shadow:0 0 0 2px var(--ok)}
+.bd-mark{font:700 15px var(--f-mono);color:var(--muted)}
+#bd-ch li.done .bd-mark{color:var(--ok)}
+.bd-ch-act{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;margin-top:4px}
+.bd-ch-act details summary{cursor:pointer;font-size:13px;color:var(--accent)}
+.bd-ch-act details p{margin-top:4px;color:var(--muted)}
+
+/* ---------- simulator export ---------- */
+.exp-panel{border:1px solid var(--accent);border-radius:var(--r);padding:16px;display:grid;gap:12px;background:var(--surface)}
+.exp-head h4{margin:0 0 4px;font:800 20px var(--f-display);font-stretch:76%}
+.exp-steps{margin:0;padding-left:1.3em;display:grid;gap:4px;font-size:14px}
+.exp-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.exp-bar .grow{flex:1}
+.exp-code{margin:0;max-height:340px;overflow:auto;padding:12px 14px;background:var(--code-bg);border:1px solid var(--line);border-radius:7px;font:12px/1.55 var(--f-mono)}
+.exp-code code{background:none;padding:0}
+
+/* ---------- draw it ---------- */
+.dr{display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+.dr-task{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.dr-task h3{font-size:22px;font-stretch:75%}
+.pz-navlist{display:flex;flex-wrap:wrap;gap:6px;margin-left:auto}
+.pz-navlist button{font:600 12.5px var(--f-mono);width:34px;height:34px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.pz-navlist button.done{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+.pz-navlist button.cur{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.dr-text{font:600 17px/1.4 var(--f-body);max-width:70ch}
+.dr-wrap{background:var(--scope);padding:12px}
+.dr-grid{display:grid;gap:0;width:max-content;user-select:none}
+.dr-h{font:500 10.5px var(--f-mono);color:var(--muted);text-align:center;padding-bottom:4px}
+.dr-l{font:600 11.5px var(--f-mono);color:var(--c,var(--ink));display:flex;align-items:center;padding-right:8px;height:40px}
+.dr-clk{height:40px;position:relative}
+.dr-clk::before{content:"";position:absolute;left:0;width:50%;top:10px;bottom:10px;border-top:2px solid var(--s-clk);border-left:2px solid var(--s-clk);border-right:2px solid var(--s-clk)}
+.dr-clk::after{content:"";position:absolute;left:50%;right:0;bottom:10px;border-bottom:2px solid var(--s-clk)}
+.dr-c{all:unset;box-sizing:border-box;height:40px;position:relative;cursor:pointer;border-right:1px dashed var(--grid)}
+.dr-c::after{content:"";position:absolute;left:0;right:0;height:2.5px;background:var(--c,var(--ink))}
+.dr-c.hi::after{top:9px}
+.dr-c.lo::after{bottom:9px}
+.dr-c.edge::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:2.5px;background:var(--c,var(--ink))}
+.dr-c:hover:not(:disabled){background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.dr-c:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.dr-c.dc{cursor:not-allowed;background:repeating-linear-gradient(45deg,transparent 0 4px,color-mix(in srgb,var(--muted) 22%,transparent) 4px 5px)}
+.dr-c.dc::after,.dr-c.dc::before{opacity:.25}
+.dr-c.bad{box-shadow:inset 0 0 0 2px var(--err);background:var(--err-soft)}
+.dr-c.good{background:color-mix(in srgb,var(--ok-soft) 70%,transparent)}
+.legend i.dr-key{width:16px;height:12px;border-radius:2px;position:relative;background:none}
+.legend i.dr-key.hi{border-top:2.5px solid var(--ink)} .legend i.dr-key.lo{border-bottom:2.5px solid var(--ink)}
+.legend i.dr-key.dc{background:repeating-linear-gradient(45deg,transparent 0 3px,color-mix(in srgb,var(--muted) 40%,transparent) 3px 4px)}
+.legend i.dr-key.bad{box-shadow:inset 0 0 0 2px var(--err);background:var(--err-soft)}
+.dr-rules{margin:6px 0 0;padding-left:1.2em;display:grid;gap:3px}
+
+/* ---------- completion card ---------- */
+.cardbox{display:grid;gap:12px;margin-top:34px;padding-top:6px;max-width:780px}
+.cd-row{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center}
+.cd-row input{min-width:min(100%,240px)}
+.cd-img{width:100%;max-width:720px;height:auto;border:1px solid var(--line);border-radius:var(--r)}
+.cd-acts{display:flex;flex-wrap:wrap;gap:8px}
+
+/* ---------- chapter feedback and listen buttons ---------- */
+.fb{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:13.5px;color:var(--muted)}
+.fb a{font-size:13.5px}
+.listen{display:inline-flex;align-items:center;gap:5px;margin-left:6px;font:600 11px var(--f-mono);letter-spacing:.04em;padding:3px 9px;border-radius:20px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;vertical-align:1px}
+.listen:hover{background:var(--accent-soft)}
+.listen:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- voice guide ---------- */
+.vg{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:40;display:grid;justify-items:end;gap:10px;pointer-events:none}
+.vg > *{pointer-events:auto}
+.vg-fab{display:inline-flex;align-items:center;gap:8px;font:600 14px var(--f-body);padding:11px 16px;border-radius:26px;border:0;background:var(--accent);color:var(--accent-ink);cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.22)}
+.vg-fab:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.vg-fab.speaking svg{animation:vgpulse 1.1s ease-in-out infinite}
+@keyframes vgpulse{50%{transform:scale(1.18)}}
+.vg-panel{width:min(370px,calc(100vw - 32px));background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:0 12px 36px rgba(0,0,0,.24);display:grid;gap:10px}
+.vg-top{display:flex;align-items:center;gap:8px}
+.vg-top b{font:800 18px var(--f-display);font-stretch:78%;flex:1;min-width:0}
+.vg-cap{font-size:14px;max-height:180px;overflow:auto;color:var(--muted)}
+.vg-cap span.on{color:var(--ink);background:var(--accent-soft);border-radius:3px}
+.vg-ctl{display:flex;flex-wrap:wrap;gap:6px}
+.vg-opts{display:flex;flex-wrap:wrap;gap:8px 12px}
+.vg-opts select{max-width:190px}
+.vg-na{color:var(--warn)}
+
+@media (max-width: 820px){
+  .bd-row,.bd-cols{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width: 520px){
+  .vg-fab span{display:none}
+  .vg-fab{padding:12px}
+}
+@media (prefers-reduced-motion: reduce){ .vg-fab.speaking svg{animation:none} }
+
+.modes{grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr))}
+
+
+/* ---------- apply bar, result panel, waveform focus ---------- */
+.applybar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:10px;align-items:end;padding:12px;border-radius:var(--r) var(--r) 0 0;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);border-bottom:0}
+.ab-f{display:grid;gap:4px;min-width:0}
+.ab-f > span{display:flex;align-items:center;gap:6px;font:700 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.ab-n{font-style:normal;display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:10.5px;letter-spacing:0}
+.ab-f select{width:100%;font-size:13px;min-height:38px;border-color:color-mix(in srgb,var(--accent) 35%,var(--line))}
+.ab-f.on select{border:2px solid var(--accent);font-weight:600}
+.ab-act{display:flex;gap:6px}
+#step2 .toolbar{border-radius:0;border-top:1px solid var(--line)}
+#step2 .applybar + .toolbar{border-top:0}
+#step2 .toolbar.tb2{border-radius:0 0 var(--r) var(--r);border-top:0;border-bottom:1px solid var(--line)}
+#step2 #lab-stage .wv-box{border-radius:0}
+.legend i.lg-hl{background:color-mix(in srgb,var(--accent) 18%,transparent);width:20px}
+.legend i.lg-diff{background:none;border:2px dashed var(--warn);width:16px;height:12px}
+.wv .lane-hl{fill:color-mix(in srgb,var(--accent) 12%,transparent)}
+.wv .lbl-hl{font-weight:800;text-decoration:underline;text-decoration-thickness:2px}
+.wv .cell-diff{fill:none;stroke:var(--warn);stroke-width:2.2;stroke-dasharray:4 2}
+.wv .cell-diff.bug{stroke:var(--err)}
+.result{display:grid;gap:12px;margin-top:12px;padding:14px 16px;border:2px solid var(--accent);border-radius:var(--r);background:var(--surface)}
+.rs-src{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;font-size:14.5px}
+.rs-src p{flex:1 1 300px;margin:0}
+.rs-src p.small{flex-basis:100%;color:var(--muted)}
+.rs-tag{font:700 10.5px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:4px;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+.rs-src.is-bug .rs-tag{background:var(--err-soft);color:var(--err)}
+.rs-src.is-rnd .rs-tag,.rs-src.is-edit .rs-tag{background:var(--warn-soft);color:var(--warn)}
+.rs-bug{display:grid;gap:10px;padding-top:10px;border-top:1px solid var(--line)}
+.rs-q{font-size:15.5px}
+.rs-as{display:grid;gap:10px;padding-top:10px;border-top:1px solid var(--line)}
+.rs-as-h{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.rs-as-h .ap-st{margin-left:0}
+.rs-plain{font:600 18px/1.35 var(--f-body)}
+.rs-look{color:var(--accent)}
+.rs-hint{font-size:14.5px;color:var(--muted);padding-top:10px;border-top:1px solid var(--line)}
+.rs-more summary{cursor:pointer;font:600 13px var(--f-body);color:var(--accent)}
+.rs-more[open] summary{margin-bottom:8px}
+.rs-more{display:grid;gap:8px}
+.rs-edit-on{font-size:14px;padding:8px 12px;border-radius:6px;background:var(--warn-soft)}
+@media (max-width: 900px){ .applybar{grid-template-columns:minmax(0,1fr)} .ab-act{justify-content:flex-start} }
+
+
+/* ---------- footer ---------- */
+.site-foot{border-top:1px solid var(--line);margin-top:70px;padding-top:26px;display:grid;gap:12px;color:var(--muted);font-size:14px}
+.sf-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:22px;align-items:start}
+.sf-about,.sf-next{display:grid;gap:8px;align-content:start}
+.sf-brand{display:flex;align-items:center;gap:10px;color:var(--ink)}
+.sf-brand b{font:800 24px var(--f-display);font-stretch:72%}
+.sf-about p{max-width:60ch;color:var(--ink)}
+.sf-links{display:flex;flex-wrap:wrap;gap:6px 16px}
+.sf-links a{font-weight:600}
+.sf-next{padding:16px;border-radius:var(--r);background:var(--accent-soft);color:var(--ink)}
+.sf-next .btn{justify-self:start}
+a.btn{text-decoration:none}
+.sf-fine{font-size:12.5px;max-width:90ch}
+.share-link{margin-left:6px}
+@media (max-width: 760px){ .sf-grid{grid-template-columns:minmax(0,1fr)} }
+
+/* single-column grids must not grow past their container */
+.hero,.try,.vcard,.stack,.pz,.mpanel,.bug-card,.fsm-controls,.hero-scope{grid-template-columns:minmax(0,1fr)}
+select{max-width:100%}
+label.field{min-width:0;flex-wrap:wrap}
+#lab-preset{max-width:min(100%,340px)}
+
+/* ---------- responsive ---------- */
+@media (max-width: 1000px){
+  .fsm{grid-template-columns:minmax(0,1fr)}
+  .bug{grid-template-columns:minmax(0,1fr)}
+  .bug > div{border-right:0;border-bottom:1px solid var(--line)}
+  .bug > div:last-child{border-bottom:0}
+}
+@media (max-width: 900px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .rail{position:sticky;top:env(safe-area-inset-top,0px);height:auto;z-index:10;flex-direction:row;align-items:center;gap:12px;padding:8px 16px;border-right:0;border-bottom:1px solid var(--line)}
+  .brand small{display:none}
+  .rail nav{flex-direction:row;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
+  .rail nav::-webkit-scrollbar{display:none}
+  .rail nav a{grid-template-columns:auto auto;white-space:nowrap;font-size:13px}
+  .rail .navgrp,.prog{display:none}
+  html{scroll-padding-top:64px}
+  .timeline{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .timeline div:nth-child(2){border-right:0}
+  .timeline div:nth-child(-n+2){border-bottom:1px solid var(--line)}
+}
+@media (max-width: 520px){
+  .brand b{display:none}
+  .vcard-head .btn{margin-left:0}
+  .qz-q{font-size:16.5px}
+}
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  *{transition:none!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="rail">
+    <a class="brand" href="#top" aria-label="PosEdge APB Lab, back to top">
+      <svg width="30" height="30" viewBox="0 0 300 300" aria-hidden="true"><rect width="300" height="300" rx="66" fill="var(--accent)"/><path d="M44 214 H138 V86 H256" fill="none" stroke="var(--accent-ink)" stroke-width="22" stroke-linejoin="round" stroke-linecap="round"/><path d="M138 116 L108 168 H168 Z" fill="#ffc94d" stroke="#ffc94d" stroke-width="8" stroke-linejoin="round"/></svg>
+      <span><b>PosEdge</b><small>APB LAB · APB2 → APB5</small></span>
+    </a>
+    <nav aria-label="Chapters">
+      <a href="#roadmap"><span>→</span>Roadmap</a>
+      <span class="navgrp">Stage 1 · Understand</span>
+      <a href="#basics"><span>01</span>Basics</a>
+      <a href="#signals"><span>02</span>Signals</a>
+      <a href="#fsm"><span>03</span>State machine</a>
+      <a href="#checkpoint"><span>✓</span>Checkpoint</a>
+      <span class="navgrp">Stage 2 · See it</span>
+      <a href="#lab"><span>04</span>Waveform lab</a>
+      <a href="#versions"><span>05</span>Versions</a>
+      <span class="navgrp">Stage 3 · Verify it</span>
+      <a href="#rules"><span>06</span>Protocol rules</a>
+      <a href="#corner"><span>07</span>Corner cases</a>
+      <a href="#bugs"><span>08</span>Common bugs</a>
+      <a href="#sva"><span>09</span>Assertions</a>
+      <a href="#constraints"><span>10</span>Constraints</a>
+      <a href="#coverage"><span>11</span>Coverage</a>
+      <a href="#tb"><span>12</span>Reference TB</a>
+      <span class="navgrp">Stage 4 · Prove it</span>
+      <a href="#drill"><span>13</span>Draw it</a>
+      <a href="#exercises"><span>14</span>Exercises</a>
+      <a href="#quiz"><span>15</span>Quiz</a>
+    </nav>
+    <div class="prog" aria-label="Your progress, saved in this browser">
+      <span class="lbl-sm">Your progress</span>
+      <div class="prog-bar"><i id="prog-bar"></i></div>
+      <div><span>Chapters done</span><b id="prog-ch">0/16</b></div>
+      <div><span>Bugs caught in the lab</span><b id="prog-bugs">0/14</b></div>
+      <div><span>Bug hunts solved</span><b id="prog-pz">0/10</b></div>
+      <div><span>Waveforms drawn</span><b id="prog-dr">0/8</b></div>
+      <div><span>Best quiz score</span><b id="prog-qz">–</b></div>
+    </div>
+  </aside>
+
+  <main
+    data-author-name=""
+    data-author-url=""
+    data-page-url=""
+    data-github-url="https://github.com/2023ht80265-prog/posedge"
+    data-uvm-url="https://edaplayground.com/x/YWUZ"
+    data-feedback-url="https://forms.gle/NgSFStxCRiTXbccV9"
+    data-notify-url="https://forms.gle/NgSFStxCRiTXbccV9"
+    data-site-url="https://2023ht80265-prog.github.io/posedge/">
+  <div class="wrap">
+
+    <header class="hero" id="top">
+      <p class="eyebrow">Learn chip verification, one rising edge at a time</p>
+      <h1>PosEdge<br><em>APB Lab</em></h1>
+      <p class="lede">APB is the simplest bus in the AMBA family. Three states, two cycles per transfer, five rules. You can learn the whole protocol in under an hour and be ready to verify it the same day.</p>
+      <ul class="facts">
+        <li><b>3</b><span>states</span></li>
+        <li><b>2</b><span>cycles per transfer</span></li>
+        <li><b>5</b><span>rules to remember</span></li>
+        <li><b>45</b><span>minutes to learn the protocol</span></li>
+      </ul>
+    </header>
+
+    <section id="roadmap" class="roadmap">
+      <div class="sec-head">
+        <span class="sec-no">START HERE <button type="button" class="listen" data-listen="roadmap" aria-label="Listen to a short guide to the roadmap"><svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6h3l4-3v10l-4-3H2z" fill="currentColor"/><path d="M11 5.5a3.5 3.5 0 0 1 0 5M12.8 3.5a6 6 0 0 1 0 9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Listen</button></span>
+        <h2>Your roadmap</h2>
+        <p>Four stages, in order. Stages 1 and 2 teach the whole protocol. Stages 3 and 4 make you verification-ready. Every chapter ends with one line to remember and a button to the next one, so you never have to wonder where to go.</p>
+      </div>
+      <div class="road" id="road"></div>
+      <div class="road-cta">
+        <button type="button" class="btn primary big" id="road-go" data-target="basics">Start with Basics →</button>
+        <span id="road-sum" class="muted"></span>
+      </div>
+      <ul class="howto" aria-label="How this page works">
+        <li><b>Hover or tap a waveform</b> to read that clock cycle in plain English.</li>
+        <li><b>Click to pin a cycle</b>, then use <kbd>←</kbd> <kbd>→</kbd> to step one clock at a time.</li>
+        <li><b>In the lab, choose a scenario first.</b> Each scenario is one waveform. Then apply assertions and constraints to it with one click.</li>
+        <li><b>Prefer to listen?</b> Press <b>Voice guide</b> at the bottom right, or <b>Listen</b> next to any chapter title, for a short spoken guide to that section.</li>
+        <li><b>Progress saves in this browser</b>, so you can stop and come back later.</li>
+      </ul>
+    </section>
+
+    <!-- ===================================================== 01 -->
+    <section id="basics">
+      <div class="sec-head">
+        <span class="sec-no">01 · BASICS</span>
+        <h2>APB in three lines</h2>
+        <p>Start with the three signals that run every transfer. Then see where APB sits in a chip and why it is built so simply.</p>
+      </div>
+      <div class="three">
+        <p class="three-l"><span class="g-ctrl">PSEL</span> says <b>who</b>.<small>The requester selects one completer and puts the address on the bus.</small></p>
+        <p class="three-l"><span class="g-ctrl">PENABLE</span> says <b>now</b>.<small>One cycle later, it starts the access.</small></p>
+        <p class="three-l"><span class="g-resp">PREADY</span> says <b>done</b>.<small>The completer finishes when it is ready.</small></p>
+      </div>
+      <p class="three-sum">At the clock edge where all three are high, the transfer happens. This page calls it the <b>triple-high edge</b>. That one sentence is most of APB.</p>
+      <div class="try">
+        <span class="lbl-sm">Try it now · move across this waveform: a write with one wait state, then a read</span>
+        <div id="hero-wave"></div>
+        <div id="hero-ro" class="ro" aria-live="polite"></div>
+      </div>
+      <h3 class="sub">Where APB sits</h3>
+      <div class="tscroll" style="background:var(--scope)">
+        <svg viewBox="0 0 780 210" width="780" height="210" role="img" aria-label="System view: a CPU on a high-speed AXI or AHB interconnect reaches an APB bridge, which acts as the APB requester and selects one of four completers (UART, GPIO, timer, watchdog) with separate PSEL lines over shared address and data wires." style="display:block;max-width:none">
+          <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 Z" class="arrowhead"/></marker></defs>
+          <g font-family="var(--f-mono)" font-size="12">
+            <rect x="18" y="76" width="110" height="58" rx="6" fill="var(--surface)" stroke="var(--line)" stroke-width="1.5"/>
+            <text x="73" y="101" text-anchor="middle" fill="var(--ink)" font-weight="600">CPU</text>
+            <text x="73" y="118" text-anchor="middle" fill="var(--muted)" font-size="10.5">requester</text>
+            <rect x="168" y="76" width="150" height="58" rx="6" fill="var(--surface)" stroke="var(--line)" stroke-width="1.5"/>
+            <text x="243" y="101" text-anchor="middle" fill="var(--ink)" font-weight="600">AXI / AHB</text>
+            <text x="243" y="118" text-anchor="middle" fill="var(--muted)" font-size="10.5">high-speed fabric</text>
+            <rect x="358" y="76" width="150" height="58" rx="6" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+            <text x="433" y="101" text-anchor="middle" fill="var(--accent)" font-weight="600">APB bridge</text>
+            <text x="433" y="118" text-anchor="middle" fill="var(--accent)" font-size="10.5">APB requester</text>
+            <line x1="128" y1="105" x2="164" y2="105" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#ah)"/>
+            <line x1="318" y1="105" x2="354" y2="105" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#ah)"/>
+            <line x1="508" y1="105" x2="552" y2="105" stroke="var(--s-ctrl)" stroke-width="2"/>
+            <line x1="552" y1="32" x2="552" y2="182" stroke="var(--s-ctrl)" stroke-width="2"/>
+            <g fill="var(--surface)" stroke="var(--line)" stroke-width="1.5">
+              <rect x="604" y="12" width="150" height="40" rx="6"/><rect x="604" y="60" width="150" height="40" rx="6"/>
+              <rect x="604" y="108" width="150" height="40" rx="6"/><rect x="604" y="156" width="150" height="40" rx="6"/>
+            </g>
+            <g stroke="var(--s-ctrl)" stroke-width="1.5"><line x1="552" y1="32" x2="600" y2="32" marker-end="url(#ah)"/><line x1="552" y1="80" x2="600" y2="80" marker-end="url(#ah)"/><line x1="552" y1="128" x2="600" y2="128" marker-end="url(#ah)"/><line x1="552" y1="176" x2="600" y2="176" marker-end="url(#ah)"/></g>
+            <g fill="var(--s-ctrl)" font-size="10"><text x="562" y="27">PSEL1</text><text x="562" y="75">PSEL2</text><text x="562" y="123">PSEL3</text><text x="562" y="171">PSEL4</text></g>
+            <g fill="var(--ink)" font-weight="600"><text x="679" y="36" text-anchor="middle">UART</text><text x="679" y="84" text-anchor="middle">GPIO</text><text x="679" y="132" text-anchor="middle">Timer</text><text x="679" y="180" text-anchor="middle">Watchdog</text></g>
+            <text x="433" y="160" text-anchor="middle" fill="var(--muted)" font-size="10.5">shared PADDR · PWRITE · PENABLE · PWDATA</text>
+            <text x="433" y="176" text-anchor="middle" fill="var(--muted)" font-size="10.5">PRDATA · PREADY · PSLVERR muxed back by PSEL</text>
+          </g>
+        </svg>
+      </div>
+      <div class="grid2" style="margin-top:22px">
+        <div class="prose">
+          <p>A CPU talks to memory over a fast, pipelined bus such as AXI or AHB. Peripheral registers do not need that speed. An <b>APB bridge</b> converts each fast-bus access into one APB transfer and acts as the only <b>requester</b> on the APB side. Each peripheral is a <b>completer</b> with its own select line, <code>PSELx</code>. Address, write data and control wires are shared.</p>
+          <p>AMBA 5 documents use <i>Requester</i> and <i>Completer</i>. Older documents and most existing RTL say <i>master</i> and <i>slave</i>. They mean the same roles.</p>
+        </div>
+        <div class="prose">
+          <p>Every transfer has two phases. In <b>SETUP</b> the requester raises <code>PSELx</code> and puts address, direction and write data on the bus. One cycle later it raises <code>PENABLE</code> for <b>ACCESS</b>. From APB3 onward the completer can stretch ACCESS by holding <code>PREADY</code> low. The transfer completes at the rising edge where <code>PSEL</code>, <code>PENABLE</code> and <code>PREADY</code> are all high.</p>
+          <p>That is the whole protocol. The rest is detail about what must stay stable, what is sampled when, and what each later version added.</p>
+        </div>
+      </div>
+      <div class="grid2" style="margin-top:22px">
+        <div class="callout"><span class="tag">Why it's cheap</span>No pipelining, no bursts, no IDs, no outstanding transactions, one requester. A completer can be a register bank plus three gates of decode logic.</div>
+        <div class="callout"><span class="tag">Why it's slow</span>Each transfer takes at least two cycles, so peak throughput is one transfer every two cycles. Wait states lower that further.</div>
+        <div class="callout"><span class="tag">Timing</span>Everything is synchronous to the rising edge of <code>PCLK</code>. In these waveforms, cycle <i>n</i> is sampled at edge T<i>n+1</i>.</div>
+      </div>
+    </section>
+
+    <!-- ===================================================== 02 -->
+    <section id="signals">
+      <div class="sec-head">
+        <span class="sec-no">02 · SIGNALS</span>
+        <h2>Every signal, and when it arrived</h2>
+        <p>Pick a version to see which signals exist in it. Rows that are new in that version are highlighted.</p>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin-bottom:12px">
+        <div class="seg" id="sig-filter" role="group" aria-label="Filter signals by APB version">
+          <button type="button" data-ver="2" aria-pressed="false">APB2</button>
+          <button type="button" data-ver="3" aria-pressed="false">APB3</button>
+          <button type="button" data-ver="4" aria-pressed="false">APB4</button>
+          <button type="button" data-ver="5" aria-pressed="true">APB5</button>
+        </div>
+        <span id="sig-count" class="muted" style="font-size:13.5px"></span>
+      </div>
+      <div class="tscroll">
+        <table class="tbl" id="sig-table">
+          <thead><tr><th scope="col">Signal</th><th scope="col">Width</th><th scope="col">Driven by</th><th scope="col">Since</th><th scope="col">What it does</th><th scope="col">What to verify</th></tr></thead>
+          <tbody>
+            <tr data-v="2"><td class="sig g-clk" style="color:var(--s-clk)">PCLK</td><td class="mono">1</td><td>Clock source</td><td><span class="ver">APB2</span></td><td>Clock. All signals are timed against its rising edge.</td><td>No logic on the falling edge; check behaviour when the clock is gated.</td></tr>
+            <tr data-v="2"><td class="sig" style="color:var(--s-ctrl)">PRESETn</td><td class="mono">1</td><td>System reset</td><td><span class="ver">APB2</span></td><td>Active-low reset, normally the system bus reset.</td><td>PSEL and PENABLE low during reset; reset in the middle of a transfer.</td></tr>
+            <tr data-v="2"><td class="sig" style="color:var(--s-addr)">PADDR</td><td class="mono">≤ 32</td><td>Requester</td><td><span class="ver">APB2</span></td><td>Byte address of the access.</td><td>Stable from SETUP to completion; boundary, unmapped and unaligned addresses.</td></tr>
+            <tr data-v="2"><td class="sig" style="color:var(--s-ctrl)">PSELx</td><td class="mono">1 each</td><td>Requester (decoder)</td><td><span class="ver">APB2</span></td><td>One select per completer. High for the whole transfer.</td><td>At most one high (one-hot-zero); never dropped during a wait state.</td></tr>
+            <tr data-v="2"><td class="sig" style="color:var(--s-ctrl)">PENABLE</td><td class="mono">1</td><td>Requester</td><td><span class="ver">APB2</span></td><td>Low in SETUP, high in ACCESS. Marks the second phase.</td><td>Never high without PSEL; rises only after one SETUP cycle; drops after every completion.</td></tr>
+            <tr data-v="2"><td class="sig" style="color:var(--s-addr)">PWRITE</td><td class="mono">1</td><td>Requester</td><td><span class="ver">APB2</span></td><td>1 = write, 0 = read.</td><td>Stable during the transfer; read-after-write to the same address.</td></tr>
+            <tr data-v="2"><td class="sig" style="color:var(--s-wdata)">PWDATA</td><td class="mono">8 · 16 · 32</td><td>Requester</td><td><span class="ver">APB2</span></td><td>Write data.</td><td>Valid and stable for every cycle of a write.</td></tr>
+            <tr data-v="2"><td class="sig" style="color:var(--s-rdata)">PRDATA</td><td class="mono">8 · 16 · 32</td><td>Completer</td><td><span class="ver">APB2</span></td><td>Read data, sampled only in the completing cycle.</td><td>No X at completion; a completer that is not selected must not corrupt the bridge's read mux.</td></tr>
+            <tr data-v="3"><td class="sig" style="color:var(--s-resp)">PREADY</td><td class="mono">1</td><td>Completer</td><td><span class="ver">APB3</span></td><td>Low extends ACCESS with wait states; high completes it.</td><td>Ignored in SETUP; tie-high completers; long stalls and timeouts.</td></tr>
+            <tr data-v="3"><td class="sig" style="color:var(--s-resp)">PSLVERR</td><td class="mono">1</td><td>Completer</td><td><span class="ver">APB3</span></td><td>Error response for the transfer.</td><td>Only valid when PSEL, PENABLE and PREADY are high; scoreboard handling on read and write.</td></tr>
+            <tr data-v="4"><td class="sig" style="color:var(--s-addr)">PPROT</td><td class="mono">3</td><td>Requester</td><td><span class="ver">APB4</span></td><td>[0] privileged, [1] non-secure, [2] instruction. Each bit means that when it is 1.</td><td>All 8 values covered; secure-only or privileged-only registers reject the other kind.</td></tr>
+            <tr data-v="4"><td class="sig" style="color:var(--s-wdata)">PSTRB</td><td class="mono">DATA/8</td><td>Requester</td><td><span class="ver">APB4</span></td><td>Byte-lane write strobes. PSTRB[n] enables PWDATA[8n+7:8n].</td><td>All zeros on reads; sparse and empty strobes on writes; interop with APB3 completers.</td></tr>
+            <tr data-v="5"><td class="sig" style="color:var(--s-ctrl)">PWAKEUP</td><td class="mono">1</td><td>Requester</td><td><span class="ver">APB5</span></td><td>Signals activity so a power-managed completer can wake before the transfer.</td><td>Driven from a register (glitch-free); asserted before or with PSEL; held until completion.</td></tr>
+            <tr data-v="5"><td class="sig" style="color:var(--s-addr)">PAUSER</td><td class="mono">user</td><td>Requester</td><td><span class="ver">APB5</span></td><td>User-defined request attribute.</td><td>Same stability rule as PADDR.</td></tr>
+            <tr data-v="5"><td class="sig" style="color:var(--s-wdata)">PWUSER</td><td class="mono">user</td><td>Requester</td><td><span class="ver">APB5</span></td><td>User-defined write-data attribute.</td><td>Same stability rule as PWDATA.</td></tr>
+            <tr data-v="5"><td class="sig" style="color:var(--s-rdata)">PRUSER</td><td class="mono">user</td><td>Completer</td><td><span class="ver">APB5</span></td><td>User-defined read-data attribute.</td><td>Sampled with PRDATA.</td></tr>
+            <tr data-v="5"><td class="sig" style="color:var(--s-resp)">PBUSER</td><td class="mono">user</td><td>Completer</td><td><span class="ver">APB5</span></td><td>User-defined response attribute.</td><td>Sampled with PSLVERR.</td></tr>
+            <tr data-v="5"><td class="sig" style="color:var(--s-addr)">PNSE</td><td class="mono">1</td><td>Requester</td><td><span class="ver">APB5 · RME</span></td><td>Added with Arm's Realm Management Extension. With PPROT[1] it selects one of four physical address spaces: Secure, Non-secure, Root, Realm.</td><td>All four address spaces covered; access-filter checks per space.</td></tr>
+            <tr data-v="5"><td class="sig">*CHK</td><td class="mono">varies</td><td>Both</td><td><span class="ver">APB5</span></td><td>Optional interface protection: PADDRCHK, PCTRLCHK, PSELxCHK, PENABLECHK, PWDATACHK, PSTRBCHK, PREADYCHK, PRDATACHK, PSLVERRCHK, and more. Odd parity per byte or per signal group.</td><td>Inject single-bit errors on each protected signal and check that the receiver flags them.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===================================================== 03 -->
+    <section id="fsm">
+      <div class="sec-head">
+        <span class="sec-no">03 · STATE MACHINE</span>
+        <h2>Three states drive everything</h2>
+        <p>Queue a few transfers, choose whether the completer is ready, and clock the bus one edge at a time. The highlighted arrow is the transition the next edge will take, and the waveform below grows cycle by cycle.</p>
+      </div>
+      <div class="fsm">
+        <div class="fsm-diagram">
+          <svg id="fsm-svg" viewBox="0 0 560 372" role="img" aria-label="APB state diagram. IDLE goes to SETUP when a transfer is requested. SETUP always goes to ACCESS. ACCESS stays in ACCESS while PREADY is low, goes to SETUP when PREADY is high and another transfer is pending, and goes to IDLE when PREADY is high and nothing is pending.">
+            <defs>
+              <marker id="fa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 Z" class="arrowhead"/></marker>
+              <marker id="fa-on" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="var(--accent)"/></marker>
+            </defs>
+            <g class="fsm-arc" data-arc="idle-idle"><path d="M98,50 C64,-4 176,-4 142,50" marker-end="url(#fa)"/><text x="120" y="14" text-anchor="middle">no transfer</text></g>
+            <g class="fsm-arc" data-arc="idle-setup"><path d="M170,82 L390,82" marker-end="url(#fa)"/><text x="280" y="72" text-anchor="middle">transfer requested</text><text x="280" y="100" text-anchor="middle">PSELx = 1</text></g>
+            <g class="fsm-arc" data-arc="setup-access"><path d="M408,128 Q352,176 314,238" marker-end="url(#fa)"/><text x="300" y="168" text-anchor="end">always</text><text x="300" y="182" text-anchor="end">PENABLE = 1</text></g>
+            <g class="fsm-arc" data-arc="access-setup"><path d="M326,262 Q432,230 456,138" marker-end="url(#fa)"/><text x="452" y="226">PREADY = 1</text><text x="452" y="240">and transfer</text></g>
+            <g class="fsm-arc" data-arc="access-idle"><path d="M236,262 Q128,232 112,138" marker-end="url(#fa)"/><text x="108" y="226" text-anchor="end">PREADY = 1</text><text x="108" y="240" text-anchor="end">no transfer</text></g>
+            <g class="fsm-arc" data-arc="access-access"><path d="M262,326 C228,378 332,378 298,326" marker-end="url(#fa)"/><text x="350" y="356">PREADY = 0 (wait)</text></g>
+            <g class="fsm-state" data-state="IDLE"><circle cx="120" cy="92" r="48"/><text x="120" y="96">IDLE</text><text class="sub" x="120" y="112">PSEL=0</text></g>
+            <g class="fsm-state" data-state="SETUP"><circle cx="440" cy="92" r="48"/><text x="440" y="96">SETUP</text><text class="sub" x="440" y="112">PSEL=1 EN=0</text></g>
+            <g class="fsm-state" data-state="ACCESS"><circle cx="280" cy="282" r="48"/><text x="280" y="286">ACCESS</text><text class="sub" x="280" y="302">PSEL=1 EN=1</text></g>
+          </svg>
+        </div>
+        <div class="fsm-controls">
+          <div class="panel" id="fsm-now" aria-live="polite"></div>
+          <div>
+            <span class="lbl-sm">Pending transfers</span>
+            <div class="row"><div id="fsm-queue" style="flex:1;min-width:0"></div></div>
+          </div>
+          <div class="row">
+            <button type="button" class="btn" id="fsm-qw">+ Queue write</button>
+            <button type="button" class="btn" id="fsm-qr">+ Queue read</button>
+          </div>
+          <div class="row">
+            <label class="switch"><input type="checkbox" id="fsm-ready" checked> Completer ready (PREADY = 1)</label>
+          </div>
+          <div class="row">
+            <button type="button" class="btn primary" id="fsm-clk">Clock edge ↑</button>
+            <button type="button" class="btn" id="fsm-auto" aria-pressed="false">Run</button>
+            <button type="button" class="btn" id="fsm-reset">Reset</button>
+          </div>
+          <div>
+            <span class="lbl-sm">Transition log</span>
+            <ol id="fsm-log"></ol>
+          </div>
+        </div>
+      </div>
+      <div id="fsm-wave" style="margin-top:16px"></div>
+      <div class="grid2" style="margin-top:22px">
+        <div class="prose">
+          <h3>Reading the diagram</h3>
+          <ul class="clean">
+            <li><b>IDLE</b> is the default. The bus stays here while nothing is requested.</li>
+            <li><b>SETUP</b> lasts exactly one cycle, always. There is no condition on the SETUP → ACCESS arc.</li>
+            <li><b>ACCESS</b> repeats while <code>PREADY</code> is low. Each repeat is a wait state.</li>
+            <li>From a completing ACCESS the bus goes straight to SETUP if another transfer is pending. That is a back-to-back transfer: <code>PSEL</code> stays high and only <code>PENABLE</code> drops.</li>
+          </ul>
+          <p>Try it: queue two transfers, untick <i>Completer ready</i> for two clocks during ACCESS, then tick it again.</p>
+        </div>
+        <script type="text/x-sv" data-title="apb_requester_fsm.sv · requester-side state machine">
+typedef enum logic [1:0] {IDLE, SETUP, ACCESS} apb_state_e;
+apb_state_e state, nxt;
+
+always_ff @(posedge PCLK or negedge PRESETn)
+  if (!PRESETn) state <= IDLE;
+  else          state <= nxt;
+
+always_comb begin
+  nxt = state;
+  unique case (state)
+    IDLE:   if (req_valid) nxt = SETUP;
+    SETUP:                 nxt = ACCESS;   // always exactly one cycle
+    ACCESS: if (PREADY)    nxt = req_valid ? SETUP : IDLE;
+  endcase
+end
+
+assign PSEL      = (state != IDLE);
+assign PENABLE   = (state == ACCESS);
+assign req_ready = (nxt == SETUP);         // request accepted as SETUP starts
+
+// Capture the request on the edge that enters SETUP, so
+// PADDR / PWRITE / PWDATA stay stable through every wait state.
+always_ff @(posedge PCLK or negedge PRESETn)
+  if (!PRESETn) begin
+    PADDR <= '0; PWRITE <= 1'b0; PWDATA <= '0;
+  end else if (nxt == SETUP) begin
+    PADDR <= req_addr; PWRITE <= req_write; PWDATA <= req_wdata;
+  end
+
+assign rsp_valid = (state == ACCESS) && PREADY;
+assign rsp_rdata = PRDATA;
+assign rsp_err   = PSLVERR;
+        </script>
+      </div>
+    </section>
+
+    <!-- ===================================================== CHECKPOINT -->
+    <section id="checkpoint">
+      <div class="sec-head">
+        <span class="sec-no">CHECKPOINT</span>
+        <h2>Three questions, then you know APB</h2>
+        <p>If you can answer these, you understand the core of the protocol. Everything after this adds detail, not new ideas.</p>
+      </div>
+      <div class="quiz"><div id="cp-box" class="qbox" aria-live="polite"></div></div>
+    </section>
+
+    <!-- ===================================================== 04 -->
+    <section id="lab">
+      <div class="sec-head">
+        <span class="sec-no">04 · WAVEFORM LAB</span>
+        <h2>Choose, watch, apply</h2>
+        <p><b>Choose a scenario</b>, then watch its waveform. Everything you apply, whether an assertion, a bug or random stimulus, is picked right above the waveform and shows up on it, with the explanation right below it.</p>
+      </div>
+
+      <div class="lab-step" id="step1">
+        <div class="step-h"><span class="step-n" aria-hidden="true">1</span><div><h3>Choose a scenario to learn</h3><p>Each scenario is one waveform that teaches one idea. Pick one here and the waveform in step 2 changes to it. Start at the top left and work through them in order.</p></div></div>
+        <div id="scn" class="scn" aria-label="Scenarios"></div>
+      </div>
+
+      <div class="lab-step" id="step2">
+        <div class="step-h"><span class="step-n" aria-hidden="true">2</span><div><h3>Watch it, then apply</h3><p>Press <b>Play</b> or move across the waveform. Then use the three menus right above it. What you pick is marked on the waveform and explained under it.</p></div></div>
+        <div class="applybar" role="group" aria-label="Apply to the waveform">
+          <label class="ab-f" for="ab-assert"><span><i class="ab-n">A</i>Apply an assertion</span><select id="ab-assert"></select></label>
+          <label class="ab-f" for="ab-bug"><span><i class="ab-n">B</i>Insert a bug</span><select id="ab-bug"></select></label>
+          <label class="ab-f" for="ab-cons"><span><i class="ab-n">C</i>Random stimulus</span><select id="ab-cons"></select></label>
+          <div class="ab-act"><button type="button" class="btn" id="ab-reseed" hidden>New seed ↻</button><button type="button" class="btn" id="ab-reset">Reset</button></div>
+        </div>
+        <div class="toolbar">
+          <span class="now" id="lab-now" aria-live="polite"></span>
+          <span class="grow"></span>
+          <span id="lab-status" class="lab-status ok" aria-live="polite"></span>
+        </div>
+        <div id="lab-stage">
+          <div id="lab-wave"></div>
+          <div class="pop" id="lab-pop" hidden role="dialog" aria-label="Edit bus value">
+            <label for="lab-pop-i" id="lab-pop-l">Value</label>
+            <div class="row"><input id="lab-pop-i" autocomplete="off" spellcheck="false"><button type="button" class="btn primary" id="lab-pop-ok">Set</button></div>
+            <div class="row"><button type="button" class="btn" id="lab-pop-x">Make X</button><button type="button" class="btn" id="lab-pop-c">Cancel</button></div>
+          </div>
+        </div>
+        <div class="toolbar tb2">
+          <div class="playback">
+            <button type="button" class="btn" id="lab-prev" aria-label="Previous cycle">◀</button>
+            <button type="button" class="btn primary" id="lab-play" aria-pressed="false">▶ Play</button>
+            <button type="button" class="btn" id="lab-next" aria-label="Next cycle">▶</button>
+          </div>
+          <label class="field" for="lab-ver">Version
+            <select id="lab-ver"><option value="2">APB2</option><option value="3">APB3</option><option value="4">APB4</option><option value="5">APB5</option></select>
+          </label>
+          <label class="field" for="lab-zoom">Zoom <input type="range" id="lab-zoom" min="34" max="90" value="54"></label>
+          <span class="grow"></span>
+          <button type="button" class="btn" id="lab-export" aria-expanded="false" aria-controls="exp-panel">Run on a real simulator ↗</button>
+        </div>
+        <div class="legend">
+          <span><i class="lg-hl"></i>signals the assertion looks at</span><span><i class="lg-dot"></i>a check</span><span><i class="lg-x">✕</i>a failed check</span><span><i class="lg-diff"></i>changed by the bug, constraint or edit</span><span><i class="ph-WAIT"></i>wait state</span><span><i class="ph-ACCESS"></i>triple-high edge</span>
+        </div>
+        <div class="result" id="lab-result" aria-live="polite"></div>
+        <div id="lab-readout" class="ro" aria-live="polite"></div>
+        <div class="exp-panel" id="exp-panel" hidden>
+          <div class="exp-head">
+            <div><h4>Run this waveform on a real simulator</h4><p class="small muted">This exports the exact waveform above, cycle by cycle, with the same assertions the lab runs. Run it on EDA Playground and the same checks should fail or pass there.</p></div>
+          </div>
+          <ol class="exp-steps">
+            <li>Copy the code below.</li>
+            <li>Open <a href="https://www.edaplayground.com" target="_blank" rel="noopener">edaplayground.com</a> and log in with a free account.</li>
+            <li>Paste it into <code>testbench.sv</code> and leave <code>design.sv</code> empty.</li>
+            <li>Choose a simulator with SVA support, for example Synopsys VCS, Cadence Xcelium or Aldec Riviera-PRO. Tick <i>Open EPWave after run</i>, then press <b>Run</b>.</li>
+          </ol>
+          <div class="exp-bar">
+            <label class="switch sm" for="exp-mine"><input type="checkbox" id="exp-mine"> Include my assertion from the Build tab</label>
+            <span class="grow"></span>
+            <span class="small muted" id="exp-lines"></span>
+            <button type="button" class="btn primary" id="exp-copy">Copy the code</button>
+          </div>
+          <pre class="exp-code"><code id="exp-code"></code></pre>
+        </div>
+        <div class="badge" id="lab-badge" hidden><span id="lab-badge-t"></span><button type="button" class="btn" id="lab-regen">Regenerate from the table</button></div>
+      </div>
+
+      <div class="lab-step" id="step3">
+        <div class="step-h"><span class="step-n" aria-hidden="true">3</span><div><h3>Go deeper</h3><p>Write and score your own assertion, set several constraints at once and watch coverage fill, browse all the bugs, or edit the waveform by hand. Each one shows its result on the waveform in step 2.</p></div></div>
+        <div class="modes" id="lab-modes" role="tablist" aria-label="Go deeper">
+          <button type="button" role="tab" id="tab-build" data-mode="build" aria-selected="true" aria-controls="m-build"><b>Build your own</b><small>Write an assertion, then score it</small></button>
+          <button type="button" role="tab" id="tab-cons" data-mode="cons" aria-selected="false" aria-controls="m-cons" tabindex="-1"><b>Constraints &amp; coverage</b><small>All switches, seeds, coverage bins</small></button>
+          <button type="button" role="tab" id="tab-bug" data-mode="bug" aria-selected="false" aria-controls="m-bug" tabindex="-1"><b>Bug library</b><small>All 14 bugs by category</small></button>
+          <button type="button" role="tab" id="tab-edit" data-mode="edit" aria-selected="false" aria-controls="m-edit" tabindex="-1"><b>Edit by hand</b><small>Flip any signal yourself</small></button>
+        </div>
+        <div class="lab-mode">
+          <div id="m-build" class="mpanel" role="tabpanel" aria-labelledby="tab-build">
+            <p class="m-intro"><b>Write your own assertion from three parts.</b> It is applied to the waveform above as <i>My assertion</i>, and the score below tests it against every legal scenario and every bug.</p>
+            <div class="bd-row">
+              <label class="bd-f" for="bd-a"><span>When</span><select id="bd-a"></select></label>
+              <label class="bd-f bd-op" for="bd-op"><span>Check</span><select id="bd-op"><option value="|->">|-> in the same clock</option><option value="|=>">|=> one clock later</option></select></label>
+              <label class="bd-f" for="bd-c"><span>Then</span><select id="bd-c"></select></label>
+            </div>
+            <p class="ap-plain" id="bd-say"></p>
+            <figure class="code mini"><figcaption><span>Your assertion</span><button type="button" class="copy" id="bd-copy">Copy</button></figcaption><pre><code id="bd-code"></code></pre></figure>
+            <div class="bd-cols">
+              <div class="ap-res" id="bd-res" aria-live="polite"></div>
+              <div class="bd-all" id="bd-all" aria-live="polite"></div>
+            </div>
+            <div class="bd-chal">
+              <div class="as-head"><span class="lbl-sm">Challenges · write an assertion that…</span><span class="lbl-sm" id="bd-ch-count"></span></div>
+              <ul id="bd-ch"></ul>
+            </div>
+          </div>
+
+          <div id="m-cons" class="mpanel" role="tabpanel" aria-labelledby="tab-cons" hidden>
+            <p class="m-intro">These are the constraints of the <code>apb_txn</code> sequence item from chapter 10. <b>Each switch applies or removes one</b>, and the waveform above re-runs with the <i>same seed</i>, so the outlined cells show exactly what that constraint changed. For one constraint at a time, the <b>Random stimulus</b> menu above the waveform is quicker.</p>
+            <div class="cons">
+              <div><span class="lbl-sm">Constraints</span><ul class="cc-list" id="rc-list"></ul></div>
+              <div class="cons-run">
+                <div class="rc-run">
+                  <label class="field" for="rc-n">Items <input type="number" id="rc-n" min="1" max="8" value="4"></label>
+                  <label class="field" for="rc-seed">Seed <input type="number" id="rc-seed" min="1" max="999999"></label>
+                  <button type="button" class="btn primary" id="rc-go">Randomize</button>
+                  <button type="button" class="btn" id="rc-again">Rerun seed</button>
+                  <button type="button" class="btn" id="rc-20">Run 20 seeds</button>
+                </div>
+                <div id="rc-notes" class="rc-notes" aria-live="polite"><p>Press <b>Randomize</b>. The waveform above shows the result.</p></div>
+                <div class="tscroll" id="rc-res-wrap" hidden><table class="tbl rc-res"><thead id="rc-res-head"></thead><tbody id="rc-res"></tbody></table></div>
+                <div class="cov">
+                  <div class="cov-head"><span class="lbl-sm">Functional coverage from your runs</span><span id="cov-total"></span><button type="button" class="linkbtn" id="cov-reset">Reset</button></div>
+                  <div class="cov-bar" id="cov-bar"><i></i></div>
+                  <div id="cov-grid"></div>
+                  <p class="small muted" id="cov-miss"></p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="m-bug" class="mpanel" role="tabpanel" aria-labelledby="tab-bug" hidden>
+            <div id="bug-pick-wrap" class="mpanel">
+              <div class="bp-top"><p class="m-intro">All 14 bugs with their category. Picking one here does the same as the <b>Insert a bug</b> menu above the waveform: it loads the bug, outlines what it changed, and asks which assertion catches it.</p><span class="lbl-sm" id="bug-count"></span></div>
+              <div id="bug-pick"></div>
+              <div><button type="button" class="btn primary" id="bug-rand">Surprise me with a bug</button></div>
+            </div>
+          </div>
+
+          <div id="m-edit" class="mpanel" role="tabpanel" aria-labelledby="tab-edit" hidden>
+            <p class="m-intro"><b>While this tab is open, the waveform above is editable.</b> Click a 1-bit signal to flip it in that cycle, or click a bus to type a new value. Your edits are outlined, and every assertion re-checks on each change.</p>
+            <div class="edit-cols">
+              <ul class="clean small">
+                <li>Change <code>PADDR</code> in a wait state.</li>
+                <li>Drop <code>PSEL</code> before <code>PREADY</code> rises.</li>
+                <li>Set <code>PRDATA</code> to <code>x</code> at the triple-high edge of a read.</li>
+                <li>Raise <code>PSLVERR</code> during SETUP and see why it is only a warning.</li>
+              </ul>
+              <div><span class="lbl-sm">Failing assertions</span><ul class="edit-fails" id="edit-fails"></ul></div>
+            </div>
+            <div><button type="button" class="btn" id="edit-reset">Undo my edits</button></div>
+          </div>
+        </div>
+      </div>
+
+      <details class="lab-table" id="lab-table">
+        <summary>Build your own scenario <span class="muted">· edit the transfer table</span></summary>
+        <div class="tscroll">
+          <table class="tbl txtable"><thead id="lab-txhead"></thead><tbody id="lab-txns"></tbody></table>
+        </div>
+        <div class="tx-actions">
+          <button type="button" class="btn" id="lab-addw">+ Write</button>
+          <button type="button" class="btn" id="lab-addr">+ Read</button>
+          <label class="field" for="lab-rst">Reset cycles <input type="number" id="lab-rst" min="0" max="6" value="0"></label>
+          <span id="lab-wake-wrap" hidden><label class="field" for="lab-wake">PWAKEUP lead <input type="number" id="lab-wake" min="0" max="4" value="1"></label></span>
+          <span class="muted" id="lab-txadd-note" style="font-size:13px"></span>
+        </div>
+      </details>
+    </section>
+
+    <!-- ===================================================== 05 -->
+    <section id="versions">
+      <div class="sec-head">
+        <span class="sec-no">05 · VERSIONS</span>
+        <h2>APB2 to APB5, one waveform each</h2>
+        <p>Each version kept the two-phase transfer and added signals around it. Each card shows one scenario for that version; press <b>Open in lab</b>, then choose other scenarios in step 1 of the lab to see more waveforms for the same version.</p>
+      </div>
+      <div class="timeline">
+        <div><b>APB2</b><span>AMBA 2 · 1999</span><p>Fixed two-cycle transfer.</p></div>
+        <div><b>APB3</b><span>AMBA 3 · 2003–04</span><p>Wait states and errors.</p></div>
+        <div><b>APB4</b><span>AMBA 4 · 2010</span><p>Protection and byte strobes.</p></div>
+        <div><b>APB5</b><span>AMBA 5 · 2021 →</span><p>Wake-up, user signals, parity.</p></div>
+      </div>
+
+      <article class="vcard">
+        <div class="vcard-head"><h3>APB2</h3><span class="meta">AMBA 2 APB</span><button type="button" class="btn" data-open-preset="apb2-b2b">Open in lab</button></div>
+        <div class="added">Signals: <code>PCLK</code><code>PRESETn</code><code>PSELx</code><code>PENABLE</code><code>PADDR</code><code>PWRITE</code><code>PWDATA</code><code>PRDATA</code></div>
+        <p class="prose">There is no <code>PREADY</code>, so every transfer is exactly one SETUP cycle and one ACCESS cycle. A completer that is slow has no way to say so: it must answer within that ACCESS cycle. There is no error signal either.</p>
+        <div class="ver-wave" data-preset="apb2-b2b"></div>
+        <div class="ro ver-ro"></div>
+      </article>
+
+      <article class="vcard">
+        <div class="vcard-head"><h3>APB3</h3><span class="meta">AMBA 3 APB v1.0</span><button type="button" class="btn" data-open-preset="apb3-err">Open in lab</button></div>
+        <div class="added">Adds: <code>PREADY</code><code>PSLVERR</code></div>
+        <p class="prose">The completer holds <code>PREADY</code> low to insert wait states, and drives <code>PSLVERR</code> high in the completing cycle to report an error. An APB2 completer works on an APB3 bus with <code>PREADY</code> tied high and <code>PSLVERR</code> tied low. The waveform shows a write with one wait state that fails, then a read that fails.</p>
+        <div class="ver-wave" data-preset="apb3-err"></div>
+        <div class="ro ver-ro"></div>
+      </article>
+
+      <article class="vcard">
+        <div class="vcard-head"><h3>APB4</h3><span class="meta">AMBA APB v2.0</span><button type="button" class="btn" data-open-preset="apb4-strb">Open in lab</button></div>
+        <div class="added">Adds: <code>PPROT[2:0]</code><code>PSTRB[DATA/8-1:0]</code></div>
+        <p class="prose"><code>PPROT</code> carries privileged / non-secure / instruction attributes so a completer can filter accesses. <code>PSTRB</code> allows sparse writes: only byte lanes with a strobe bit set are updated, and <code>PSTRB</code> must be all zeros on reads. Here a write updates only the low two bytes, then the read returns the merged word.</p>
+        <div class="ver-wave" data-preset="apb4-strb"></div>
+        <div class="ro ver-ro"></div>
+        <div class="callout"><span class="tag">Interop trap</span>An APB3 completer has no <code>PSTRB</code> input. If an APB4 requester sends a partial write to it, the completer writes the full word and corrupts the bytes that should have been left alone. The interconnect must block, error, or emulate those writes.</div>
+      </article>
+
+      <article class="vcard">
+        <div class="vcard-head"><h3>APB5</h3><span class="meta">AMBA 5 APB, Issue D onward</span><button type="button" class="btn" data-open-preset="apb5-wake">Open in lab</button></div>
+        <div class="added">Adds: <code>PWAKEUP</code><code>PAUSER</code><code>PWUSER</code><code>PRUSER</code><code>PBUSER</code><code>*CHK parity</code><code>PNSE (RME)</code></div>
+        <p class="prose"><code>PWAKEUP</code> tells a clock-gated or power-gated completer that activity is coming, so it can wake before <code>PSEL</code>. User signals carry implementation-defined sideband data with the same timing as the signal they accompany. The optional check signals add odd parity for functional-safety designs. The waveform shows <code>PWAKEUP</code> leading <code>PSEL</code> by two cycles.</p>
+        <div class="ver-wave" data-preset="apb5-wake"></div>
+        <div class="ro ver-ro"></div>
+      </article>
+
+      <h3 class="sub">Feature matrix</h3>
+      <div class="tscroll">
+        <table class="tbl">
+          <thead><tr><th scope="col">Feature</th><th scope="col">APB2</th><th scope="col">APB3</th><th scope="col">APB4</th><th scope="col">APB5</th></tr></thead>
+          <tbody>
+            <tr><td>Two-phase SETUP / ACCESS transfer</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+            <tr><td>Wait states (<code>PREADY</code>)</td><td class="no">–</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+            <tr><td>Error response (<code>PSLVERR</code>)</td><td class="no">–</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+            <tr><td>Protection attributes (<code>PPROT</code>)</td><td class="no">–</td><td class="no">–</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+            <tr><td>Byte strobes (<code>PSTRB</code>)</td><td class="no">–</td><td class="no">–</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+            <tr><td>Wake-up hint (<code>PWAKEUP</code>)</td><td class="no">–</td><td class="no">–</td><td class="no">–</td><td class="yes">✓</td></tr>
+            <tr><td>User sideband signals</td><td class="no">–</td><td class="no">–</td><td class="no">–</td><td class="yes">✓</td></tr>
+            <tr><td>Interface parity protection</td><td class="no">–</td><td class="no">–</td><td class="no">–</td><td class="yes">✓ optional</td></tr>
+            <tr><td>Realm Management (<code>PNSE</code>)</td><td class="no">–</td><td class="no">–</td><td class="no">–</td><td class="yes">✓ later issue</td></tr>
+            <tr><td>Minimum cycles per transfer</td><td class="mono">2</td><td class="mono">2</td><td class="mono">2</td><td class="mono">2</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===================================================== 06 -->
+    <section id="rules">
+      <div class="sec-head">
+        <span class="sec-no">06 · PROTOCOL RULES</span>
+        <h2>Five rules cover almost everything</h2>
+        <p>Learn these five. Each one is checked by an assertion, and each card has a button that loads a bug breaking it into the lab, so you can watch the assertion fire.</p>
+      </div>
+      <div class="golden">
+        <article>
+          <span class="gn">1</span><h3>One beat of SETUP</h3>
+          <p>PSEL rises with PENABLE low for exactly one cycle. Then ACCESS, always.</p>
+          <p class="gk"><code>a_setup_to_access</code><code>a_rose_en_after_setup</code></p>
+          <button type="button" class="btn sm" data-break="long-setup">See it break →</button>
+        </article>
+        <article>
+          <span class="gn">2</span><h3>Freeze till READY</h3>
+          <p>From SETUP to the triple-high edge, nothing the requester drives may change.</p>
+          <p class="gk"><code>a_wait_hold</code><code>a_stable_ctrl</code><code>a_stable_wdata</code></p>
+          <button type="button" class="btn sm" data-break="addr-wander">See it break →</button>
+        </article>
+        <article>
+          <span class="gn">3</span><h3>ENABLE needs SELECT</h3>
+          <p>PENABLE is never high on its own. No PSEL, no PENABLE.</p>
+          <p class="gk"><code>a_en_needs_sel</code></p>
+          <button type="button" class="btn sm" data-break="en-alone">See it break →</button>
+        </article>
+        <article>
+          <span class="gn">4</span><h3>Drop ENABLE after</h3>
+          <p>After every completion PENABLE goes low, even when PSEL stays high for the next transfer.</p>
+          <p class="gk"><code>a_en_drop</code></p>
+          <button type="button" class="btn sm" data-break="en-stuck">See it break →</button>
+        </article>
+        <article>
+          <span class="gn">5</span><h3>Sample at triple-high</h3>
+          <p>PRDATA and PSLVERR only count at the edge where PSEL, PENABLE and PREADY are all high.</p>
+          <p class="gk"><code>a_no_x_rdata</code><code>a_err_only_on_done</code></p>
+          <button type="button" class="btn sm" data-break="rdata-x">See it break →</button>
+        </article>
+      </div>
+
+      <h3 class="sub">Every assertion the lab runs</h3>
+      <p class="muted" style="margin-bottom:12px">The same names as the SVA checker in chapter 09. Errors break the protocol; warnings flag recommendations and testbench policy.</p>
+      <div class="tscroll">
+        <table class="tbl">
+          <thead><tr><th scope="col">Assertion</th><th scope="col">Group</th><th scope="col">What it checks</th><th scope="col">When · then</th><th scope="col">Level</th></tr></thead>
+          <tbody id="rules-body"></tbody>
+        </table>
+      </div>
+      <div class="grid2" style="margin-top:18px">
+        <div class="callout"><span class="tag">Recommended</span>After a transfer, keep <code>PADDR</code> and <code>PWRITE</code> at their last values until the next transfer. It is not required, but it avoids needless toggling on a wide shared bus.</div>
+        <div class="callout"><span class="tag">Don't care</span><code>PREADY</code> in SETUP, <code>PRDATA</code> outside the completing read cycle, and <code>PWDATA</code> during reads carry no meaning. A checker that flags them is wrong.</div>
+      </div>
+    </section>
+
+    <!-- ===================================================== 07 -->
+    <section id="corner">
+      <div class="sec-head">
+        <span class="sec-no">07 · CORNER CASES</span>
+        <h2>Where APB designs actually break</h2>
+        <p>Every item here has caught a real bug somewhere. Each card says why it matters and how to hit it in a testbench. Several are loadable presets in the lab.</p>
+      </div>
+
+      <div class="cc-group"><h3>Timing and flow</h3><div class="cc">
+        <article><h4>Zero wait states</h4><p>The fastest case: SETUP then one ACCESS. Completers that need a cycle to decode often have bugs only here.</p><p class="how"><b>Hit it</b>Force or tie PREADY high; weight <code>wait_cycles == 0</code> heavily.</p></article>
+        <article><h4>Long stalls</h4><p>A completer holds PREADY low for many cycles. APB has no timeout, so the bridge or the CPU hangs unless something watches.</p><p class="how"><b>Hit it</b>Randomise 0 to 16+ waits; add a bounded-completion assertion and a bridge watchdog test.</p></article>
+        <article><h4>PREADY high during SETUP</h4><p>Legal, and must be ignored. A completer that defaults PREADY high is common. A requester that completes on it is broken.</p><p class="how"><b>Hit it</b>Completer model option that drives PREADY=1 when idle. Lab preset: <i>PREADY high during SETUP</i>.</p></article>
+        <article><h4>Back-to-back, same completer</h4><p>PSEL never falls; only PENABLE pulses low. Completers that use PSEL's falling edge to finish an operation miss the second transfer.</p><p class="how"><b>Hit it</b><code>idle_cycles == 0</code> sequences; cover <code>done ##1 setup</code>.</p></article>
+        <article><h4>Back-to-back, different completers</h4><p>PSEL1 falls in the same cycle PSEL2 rises. The read mux in the bridge must switch cleanly.</p><p class="how"><b>Hit it</b>Alternate target regions with zero idle cycles. Lab preset: <i>two peripherals</i>.</p></article>
+        <article><h4>Read immediately after write</h4><p>Back-to-back read of the address just written. Exposes write pipelines that update a cycle late.</p><p class="how"><b>Hit it</b>Directed W→R pairs to the same address with 0 waits.</p></article>
+      </div></div>
+
+      <div class="cc-group"><h3>Responses</h3><div class="cc">
+        <article><h4>PSLVERR on a write</h4><p>The register may or may not have been updated. A scoreboard that assumes either way will produce false failures.</p><p class="how"><b>Hit it</b>Error-injecting completer model; scoreboard marks the location unknown.</p></article>
+        <article><h4>PSLVERR on a read</h4><p>PRDATA is not guaranteed valid. The requester must not forward it as good data.</p><p class="how"><b>Hit it</b>Return garbage with PSLVERR=1 and check the bridge's response to the fast bus.</p></article>
+        <article><h4>Error after wait states</h4><p>PSLVERR is only meaningful on the final cycle. A requester sampling it on every ACCESS cycle sees noise.</p><p class="how"><b>Hit it</b>Cross <code>wait_cycles</code> with <code>slverr</code> in coverage.</p></article>
+        <article><h4>Unmapped address</h4><p>An address inside the APB region but outside any completer. Something must still answer, or the bus hangs.</p><p class="how"><b>Hit it</b>10% of addresses outside the map; expect a default completer with PSLVERR or read-as-zero, per your design spec.</p></article>
+      </div></div>
+
+      <div class="cc-group"><h3>Data and strobes</h3><div class="cc">
+        <article><h4>Write with PSTRB = 0000</h4><p>Legal in APB4. No bytes change. Completers that ignore strobes write anyway.</p><p class="how"><b>Hit it</b>Keep 0 in the strobe distribution; check the register is unchanged.</p></article>
+        <article><h4>Sparse strobes</h4><p>Single bytes, half-words and patterns like 0101. Byte-enable logic often handles 1111 and nothing else.</p><p class="how"><b>Hit it</b>Coverpoint bins for each single lane, both halves, and others.</p></article>
+        <article><h4>Partial write to an APB3 completer</h4><p>No PSTRB input, so it writes the whole word. See the APB4 interop trap.</p><p class="how"><b>Hit it</b>System-level test through the real interconnect, not just block level.</p></article>
+        <article><h4>Unaligned address</h4><p>PADDR low bits not zero. Behaviour is design-specific: aligned-down, error, or ignored.</p><p class="how"><b>Hit it</b>Turn off the alignment constraint in one test; check against the register spec.</p></article>
+      </div></div>
+
+      <div class="cc-group"><h3>Reset, power, protection</h3><div class="cc">
+        <article><h4>Reset in the middle of a transfer</h4><p>Both sides must return to IDLE. The requester must not complete the old transfer after reset deasserts.</p><p class="how"><b>Hit it</b>Assert PRESETn at a random cycle during ACCESS; restart traffic.</p></article>
+        <article><h4>First transfer after reset</h4><p>The very first cycle after release. Exposes state that is not initialised by reset.</p><p class="how"><b>Hit it</b>Lab preset: <i>Reset, then the first transfer</i>.</p></article>
+        <article><h4>Wake from clock gating (APB5)</h4><p>A transfer starts right after PWAKEUP rises. The completer's clock must be running by SETUP.</p><p class="how"><b>Hit it</b>Vary PWAKEUP lead from 0 to several cycles.</p></article>
+        <article><h4>Protection mismatch</h4><p>Non-secure access to a secure register, unprivileged access to a privileged one. Expect PSLVERR or read-as-zero, write-ignored.</p><p class="how"><b>Hit it</b>Cross PPROT with register address in coverage.</p></article>
+        <article><h4>Parity error injection (APB5)</h4><p>Flip one bit on a protected signal or its check bit. The receiver must flag it.</p><p class="how"><b>Hit it</b>Error-injection callbacks in driver and completer model.</p></article>
+      </div></div>
+    </section>
+
+    <!-- ===================================================== 08 -->
+    <section id="bugs">
+      <div class="sec-head">
+        <span class="sec-no">08 · COMMON BUGS</span>
+        <h2>Bugs you will meet, and what catches them</h2>
+        <p>Design bugs first, then testbench bugs. Testbench bugs are worth as much attention: they either hide design bugs or waste days on false failures.</p>
+      </div>
+      <h3 class="sub">In the design</h3>
+      <div class="bug"><div><span class="k">Bug</span><h4>Write happens in SETUP</h4>Completer decodes <code>PSEL &amp;&amp; PWRITE</code> without PENABLE.</div><div><span class="k">Symptom</span>Register updates a cycle early. With wait states, a FIFO push or write-to-clear fires on every cycle of the transfer.</div><div><span class="k">Caught by</span>Scoreboard with randomised waits; FIFO level checks. Fix: qualify with <code>PSEL &amp;&amp; PENABLE &amp;&amp; PREADY</code>.</div></div>
+      <div class="bug"><div><span class="k">Bug</span><h4>Read side effect repeats</h4>Read-to-clear status or FIFO pop on every ACCESS cycle, not just the completing one.</div><div><span class="k">Symptom</span>Lost FIFO entries or cleared flags whenever the read has wait states.</div><div><span class="k">Caught by</span>Reads with wait states to side-effect registers, compared against a reference model.</div></div>
+      <div class="bug"><div><span class="k">Bug</span><h4>Wait counter not reset at completion</h4>Counter only resets on PSEL low.</div><div><span class="k">Symptom</span>Back-to-back transfers get the wrong number of wait states, so data is sampled early.</div><div><span class="k">Caught by</span>Back-to-back sequences plus a monitor that records <code>wait_cycles</code>.</div></div>
+      <div class="bug"><div><span class="k">Bug</span><h4>PSTRB ignored</h4>Completer writes all four bytes regardless of strobes.</div><div><span class="k">Symptom</span>Neighbouring bytes corrupted by partial writes.</div><div><span class="k">Caught by</span>Strobe coverage plus a byte-accurate register model.</div></div>
+      <div class="bug"><div><span class="k">Bug</span><h4>PRDATA driven when not selected</h4>Completer drives its register value onto PRDATA at all times.</div><div><span class="k">Symptom</span>Bridges that OR the PRDATA of all completers return corrupted read data.</div><div><span class="k">Caught by</span>Reads to one completer while another holds non-zero data; a check that PRDATA is zero when PSEL is low, if the design spec requires it.</div></div>
+      <div class="bug"><div><span class="k">Bug</span><h4>Bridge changes PADDR in a wait state</h4>Bridge forwards the next fast-bus address while APB is still waiting.</div><div><span class="k">Symptom</span>The completer acts on the wrong register.</div><div><span class="k">Caught by</span><code>a_stable_ctrl</code>, with completers that insert waits.</div></div>
+      <div class="bug"><div><span class="k">Bug</span><h4>Incomplete address decode</h4>Completer compares only low address bits.</div><div><span class="k">Symptom</span>Registers alias across the region; writes to one offset change another.</div><div><span class="k">Caught by</span>Walking-ones address test and aliasing checks in the register model.</div></div>
+
+      <h3 class="sub">In the testbench</h3>
+      <div class="bug"><div><span class="k">Bug</span><h4>Monitor samples on PENABLE</h4>Transaction captured when PSEL and PENABLE are high, ignoring PREADY.</div><div><span class="k">Symptom</span>Duplicate or garbage transactions for every wait state.</div><div><span class="k">Fix</span>Capture only when PSEL, PENABLE and PREADY are all high.</div></div>
+      <div class="bug"><div><span class="k">Bug</span><h4>Driver waits a fixed cycle</h4>Driver drops PSEL after one ACCESS cycle.</div><div><span class="k">Symptom</span>Passes against zero-wait completers, breaks the protocol against any completer with waits.</div><div><span class="k">Fix</span>Loop on PREADY. Exercise E8 walks through it.</div></div>
+      <div class="bug"><div><span class="k">Bug</span><h4>Race with the DUT</h4>Driver uses blocking assignments at posedge without a clocking block.</div><div><span class="k">Symptom</span>Results change with simulator or event ordering.</div><div><span class="k">Fix</span>Drive and sample through clocking blocks.</div></div>
+      <div class="bug"><div><span class="k">Bug</span><h4>Comparing PRDATA on errors</h4>Scoreboard checks read data even when PSLVERR is high.</div><div><span class="k">Symptom</span>False failures on every error test.</div><div><span class="k">Fix</span>Skip or special-case the comparison on errors.</div></div>
+      <div class="bug"><div><span class="k">Bug</span><h4>Illegal stimulus</h4>Sequence item lacks <code>dir == READ -> strb == 0</code>.</div><div><span class="k">Symptom</span>Checker fires on stimulus, and the team weakens the checker to make it pass.</div><div><span class="k">Fix</span>Constrain the item. Never relax a correct checker to suit a wrong testbench.</div></div>
+      <div class="bug"><div><span class="k">Bug</span><h4>Assertions active in reset</h4>No <code>disable iff</code>.</div><div><span class="k">Symptom</span>A flood of failures at time zero that people learn to ignore.</div><div><span class="k">Fix</span>Default disable on reset; a separate reset-state check.</div></div>
+    </section>
+
+    <!-- ===================================================== 09 -->
+    <section id="sva">
+      <div class="sec-head">
+        <span class="sec-no">09 · ASSERTIONS</span>
+        <h2>A complete SVA protocol checker</h2>
+        <p>Bind this to any APB completer interface. It holds every assertion the lab runs (chapter 06 lists them), and the cover properties tell you whether your stimulus reached the interesting cases. Want to see one fire? Each golden rule in chapter 06 has a <i>See it break</i> button, and the lab's <b>Build your own</b> tab lets you write and score your own.</p>
+      </div>
+      <script type="text/x-sv" data-title="apb_protocol_checker.sv">
+module apb_protocol_checker #(
+  parameter int ADDR_W   = 32,
+  parameter int DATA_W   = 32,
+  parameter int NSEL     = 1,      // number of PSELx lines observed
+  parameter int MAX_WAIT = 16
+)(
+  input logic                 PCLK,
+  input logic                 PRESETn,
+  input logic [NSEL-1:0]      PSELx,
+  input logic                 PENABLE,
+  input logic                 PWRITE,
+  input logic [ADDR_W-1:0]    PADDR,
+  input logic [DATA_W-1:0]    PWDATA,
+  input logic [DATA_W/8-1:0]  PSTRB,
+  input logic [2:0]           PPROT,
+  input logic                 PREADY,
+  input logic [DATA_W-1:0]    PRDATA,
+  input logic                 PSLVERR
+);
+  default clocking cb @(posedge PCLK); endclocking
+  default disable iff (!PRESETn);
+
+  logic sel, setup_ph, access_ph, wait_ph, done_ph;
+  assign sel       = |PSELx;
+  assign setup_ph  = sel && !PENABLE;
+  assign access_ph = sel &&  PENABLE;
+  assign wait_ph   = access_ph && !PREADY;
+  assign done_ph   = access_ph &&  PREADY;
+
+  // ---------------- handshake ----------------
+  a_psel_onehot:         assert property ($onehot0(PSELx))
+                         else $error("More than one PSELx high");
+  a_en_needs_sel:        assert property (PENABLE |-> sel)
+                         else $error("PENABLE without PSEL");
+  a_setup_to_access:     assert property (setup_ph |=> access_ph && $stable(PSELx))
+                         else $error("SETUP not followed by ACCESS to the same completer");
+  a_rose_en_after_setup: assert property ($rose(PENABLE) |-> $past(setup_ph))
+                         else $error("ACCESS without SETUP");
+  a_wait_hold:           assert property (wait_ph |=> access_ph && $stable(PSELx))
+                         else $error("PSEL/PENABLE dropped during a wait state");
+  a_en_drop:             assert property (done_ph |=> !PENABLE)
+                         else $error("PENABLE still high after completion");
+
+  // ---------------- stability ----------------
+  a_stable_ctrl:  assert property ((setup_ph || wait_ph) |=> $stable({PADDR, PWRITE, PPROT}))
+                  else $error("Address/control changed during transfer");
+  a_stable_wdata: assert property ((setup_ph || wait_ph) && PWRITE |=> $stable({PWDATA, PSTRB}))
+                  else $error("PWDATA/PSTRB changed during write");
+
+  // ---------------- APB4 ----------------
+  a_strb_read:    assert property (sel && !PWRITE |-> PSTRB == '0)
+                  else $error("PSTRB not zero on a read");
+
+  // ---------------- X checks ----------------
+  a_no_x_sel:     assert property (!$isunknown({PSELx, PENABLE}));
+  a_no_x_ctrl:    assert property (sel |-> !$isunknown({PADDR, PWRITE, PENABLE, PPROT}));
+  a_no_x_wdata:   assert property (sel && PWRITE |-> !$isunknown({PWDATA, PSTRB}));
+  a_no_x_ready:   assert property (access_ph |-> !$isunknown(PREADY));
+  a_no_x_err:     assert property (done_ph |-> !$isunknown(PSLVERR));
+  a_no_x_rdata:   assert property (done_ph && !PWRITE && !PSLVERR |-> !$isunknown(PRDATA));
+
+  // ---------------- recommendations (warnings) ----------------
+  a_err_only_on_done: assert property (PSLVERR |-> done_ph)
+                      else $warning("PSLVERR high outside the completing cycle");
+  a_max_wait:         assert property (setup_ph |-> ##[1:MAX_WAIT+1] done_ph)
+                      else $warning("Transfer exceeded %0d wait states", MAX_WAIT);
+
+  // ---------------- reset (must stay active during reset) ----------------
+  a_reset_idle: assert property (@(posedge PCLK) disable iff (1'b0)
+                                 !PRESETn |-> !sel && !PENABLE)
+                else $error("Bus not idle during reset");
+
+  // ---------------- coverage of interesting cases ----------------
+  c_zero_wait:    cover property (setup_ph ##1 done_ph);
+  c_wait_1:       cover property (setup_ph ##1 wait_ph ##1 done_ph);
+  c_wait_many:    cover property (setup_ph ##1 wait_ph[*4:$] ##1 done_ph);
+  c_back_to_back: cover property (done_ph ##1 setup_ph);
+  c_err_write:    cover property (done_ph && PWRITE && PSLVERR);
+  c_err_read:     cover property (done_ph && !PWRITE && PSLVERR);
+  c_err_after_wt: cover property (wait_ph ##1 (done_ph && PSLVERR));
+  c_ready_setup:  cover property (setup_ph && PREADY);
+  c_strb_zero:    cover property (done_ph && PWRITE && PSTRB == '0);
+endmodule
+
+// Bind to a completer (NSEL = 1) or to the bridge's APB port (NSEL = N)
+bind apb_regfile apb_protocol_checker #(.ADDR_W(32), .DATA_W(32), .NSEL(1))
+  u_apb_chk (.PSELx(PSEL), .*);
+      </script>
+      <div class="grid2" style="margin-top:18px">
+        <div class="prose">
+          <h3>Gotchas that cost interview points</h3>
+          <ul class="clean">
+            <li><code>|-&gt;</code> checks the consequent in the same cycle; <code>|=&gt;</code> checks it one cycle later. "SETUP is followed by ACCESS" needs <code>|=&gt;</code>.</li>
+            <li><code>$stable(x)</code> compares the current sample to the previous one. Put it after <code>|=&gt;</code> with SETUP or a wait state as the antecedent, so it checks each step of the transfer.</li>
+            <li><code>$past</code> and <code>$rose</code> look one sampled clock back. Right after reset release that value may come from the reset period.</li>
+            <li>The reset check needs its own <code>disable iff (1'b0)</code>, otherwise the default disable switches it off exactly when it should run.</li>
+          </ul>
+        </div>
+        <div class="prose">
+          <h3>Why some checks are warnings</h3>
+          <p><code>a_err_only_on_done</code> encodes a recommendation: the specification asks completers to drive <code>PSLVERR</code> low outside completion but does not require it. Making it an error would fail legal designs.</p>
+          <p><code>a_max_wait</code> is a liveness proxy. APB allows unbounded wait states, so the bound is testbench policy. In formal, prefer a real liveness property with fairness assumptions on the completer.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================== 10 -->
+    <section id="constraints">
+      <div class="sec-head">
+        <span class="sec-no">10 · CONSTRAINTS</span>
+        <h2>Stimulus that is legal by construction</h2>
+        <p>The sequence item carries both requester-side fields (address, data, strobes, protection, idle gap) and completer-side fields (wait states, error) so one item drives a requester agent or a reactive completer agent.</p>
+      </div>
+      <script type="text/x-sv" data-title="apb_txn.sv">
+typedef enum bit {APB_READ = 1'b0, APB_WRITE = 1'b1} apb_dir_e;
+
+class apb_txn extends uvm_sequence_item;
+  // requester side
+  rand apb_dir_e    dir;
+  rand bit [31:0]   addr;
+  rand bit [31:0]   wdata;
+  rand bit [3:0]    strb;
+  rand bit [2:0]    prot;
+  rand int unsigned idle_cycles;    // idle cycles before this transfer
+  // completer side (used by a reactive completer agent)
+  rand int unsigned wait_cycles;
+  rand bit          slverr;
+  // observed
+  bit [31:0]        rdata;
+
+  // memory map of the DUT
+  bit [31:0] base = 32'h4000_0000;
+  bit [31:0] size = 32'h0000_1000;
+
+  constraint c_aligned    { addr[1:0] == 2'b00; }
+  constraint c_in_range   { addr inside {[base : base + size - 4]}; }
+  constraint c_strb_read  { dir == APB_READ  -> strb == 4'b0000; }      // protocol rule
+  constraint c_strb_write { dir == APB_WRITE -> strb dist { 4'hF := 60, [4'h1:4'hE] :/ 35, 4'h0 := 5 }; }
+  constraint c_wait       { wait_cycles dist { 0 := 45, [1:3] :/ 35, [4:15] :/ 17, 16 := 3 }; }
+  constraint c_err        { slverr dist { 1'b0 := 90, 1'b1 := 10 }; }
+  constraint c_idle       { idle_cycles dist { 0 := 55, [1:2] :/ 30, [3:8] :/ 15 }; }
+  constraint c_order      { solve dir before strb; }
+
+  `uvm_object_utils_begin(apb_txn)
+    `uvm_field_enum(apb_dir_e, dir, UVM_ALL_ON)
+    `uvm_field_int(addr,        UVM_ALL_ON | UVM_HEX)
+    `uvm_field_int(wdata,       UVM_ALL_ON | UVM_HEX)
+    `uvm_field_int(strb,        UVM_ALL_ON | UVM_BIN)
+    `uvm_field_int(prot,        UVM_ALL_ON | UVM_BIN)
+    `uvm_field_int(rdata,       UVM_ALL_ON | UVM_HEX)
+    `uvm_field_int(wait_cycles, UVM_ALL_ON | UVM_DEC)
+    `uvm_field_int(slverr,      UVM_ALL_ON)
+    `uvm_field_int(idle_cycles, UVM_ALL_ON | UVM_DEC)
+  `uvm_object_utils_end
+
+  function new(string name = "apb_txn"); super.new(name); endfunction
+endclass
+      </script>
+      <div class="grid2" style="margin-top:18px">
+        <script type="text/x-sv" data-title="apb_seqs.sv · targeted sequences">
+// Back-to-back write then read of the same address
+class apb_wr_rd_b2b_seq extends uvm_sequence #(apb_txn);
+  `uvm_object_utils(apb_wr_rd_b2b_seq)
+  function new(string name = "apb_wr_rd_b2b_seq"); super.new(name); endfunction
+  task body();
+    apb_txn wr, rd;
+    `uvm_do_with(wr, { dir == APB_WRITE; strb == 4'hF; })
+    `uvm_do_with(rd, { dir == APB_READ;  addr == wr.addr; idle_cycles == 0; })
+  endtask
+endclass
+
+// Corner test: unaligned addresses (alignment rule switched off)
+class apb_unaligned_seq extends uvm_sequence #(apb_txn);
+  `uvm_object_utils(apb_unaligned_seq)
+  function new(string name = "apb_unaligned_seq"); super.new(name); endfunction
+  task body();
+    repeat (20) begin
+      req = apb_txn::type_id::create("req");
+      start_item(req);
+      req.c_aligned.constraint_mode(0);
+      if (!req.randomize() with { addr[1:0] != 2'b00; })
+        `uvm_fatal("RAND", "randomize failed")
+      finish_item(req);
+    end
+  endtask
+endclass
+        </script>
+        <div class="prose">
+          <h3>Design choices worth defending</h3>
+          <ul class="clean">
+            <li><b>Constrain protocol rules, weight corner cases.</b> <code>c_strb_read</code> is a hard rule. Everything else is a distribution, so legal corners like <code>strb == 0</code> still appear.</li>
+            <li><b><code>:=</code> vs <code>:/</code>.</b> <code>:=</code> gives the weight to every value in a range; <code>:/</code> splits it across the range. <code>[1:3] :/ 35</code> means 35 in total, not 105.</li>
+            <li><b><code>solve dir before strb</code></b> keeps the direction split near 50/50. Without it, the many strobe values on writes pull the solver toward writes.</li>
+            <li><b>Turn constraints off by name</b> with <code>constraint_mode(0)</code> for one corner test, rather than weakening the base class.</li>
+            <li>Redeclaring a constraint with the same name in a subclass replaces the parent's version. That is how a test-specific item changes the address range.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================== 11 -->
+    <section id="coverage">
+      <div class="sec-head">
+        <span class="sec-no">11 · COVERAGE</span>
+        <h2>Prove the corners were reached</h2>
+        <p>Transaction-level coverage from the monitor, plus the signal-level cover properties in chapter 09. Together they close the corner cases from chapter 07.</p>
+      </div>
+      <script type="text/x-sv" data-title="apb_coverage.sv">
+class apb_coverage extends uvm_subscriber #(apb_txn);
+  `uvm_component_utils(apb_coverage)
+  apb_txn tr;
+
+  covergroup cg_apb;
+    option.per_instance = 1;
+
+    cp_dir  : coverpoint tr.dir;
+    cp_addr : coverpoint tr.addr[11:2] {           // word index inside a 4 KB region
+      bins regs[]  = {[0:15]};                     // each real register
+      bins low     = {[16:511]};
+      bins high    = {[512:1022]};
+      bins last    = {1023};                       // top word of the region
+    }
+    cp_wait : coverpoint tr.wait_cycles {
+      bins zero = {0};  bins one = {1};  bins few = {[2:3]};
+      bins many = {[4:15]};  bins max = {[16:$]};
+    }
+    cp_err  : coverpoint tr.slverr;
+    cp_strb : coverpoint tr.strb iff (tr.dir == APB_WRITE) {
+      bins full     = {4'hF};
+      bins none     = {4'h0};
+      bins single[] = {4'h1, 4'h2, 4'h4, 4'h8};
+      bins halves[] = {4'h3, 4'hC};
+      bins sparse   = {4'h5, 4'hA, 4'h6, 4'h9};
+      bins three[]  = {4'h7, 4'hB, 4'hD, 4'hE};
+    }
+    cp_prot : coverpoint tr.prot;                  // all 8 attribute combinations
+    cp_seq  : coverpoint tr.dir {                  // consecutive transfer directions
+      bins wr_wr = (APB_WRITE => APB_WRITE);  bins wr_rd = (APB_WRITE => APB_READ);
+      bins rd_wr = (APB_READ  => APB_WRITE);  bins rd_rd = (APB_READ  => APB_READ);
+    }
+    cp_idle : coverpoint tr.idle_cycles { bins b2b = {0}; bins gap = {[1:$]}; }
+
+    x_dir_wait : cross cp_dir, cp_wait;
+    x_dir_err  : cross cp_dir, cp_err;
+    x_err_wait : cross cp_err, cp_wait;
+    x_b2b_seq  : cross cp_idle, cp_seq;
+    x_prot_reg : cross cp_prot, cp_addr { ignore_bins not_regs = binsof(cp_addr) intersect {[16:1023]}; }
+  endgroup
+
+  function new(string name, uvm_component parent);
+    super.new(name, parent);
+    cg_apb = new();
+  endfunction
+
+  function void write(apb_txn t);
+    tr = t;
+    cg_apb.sample();
+  endfunction
+endclass
+      </script>
+      <h3 class="sub">Coverage plan</h3>
+      <div class="tscroll">
+        <table class="tbl">
+          <thead><tr><th scope="col">Feature</th><th scope="col">Covered by</th><th scope="col">Goal</th></tr></thead>
+          <tbody>
+            <tr><td>Read and write to every register</td><td class="mono">cp_addr.regs × cp_dir</td><td>100%</td></tr>
+            <tr><td>Wait states 0, 1, few, many, max for reads and writes</td><td class="mono">x_dir_wait</td><td>100%</td></tr>
+            <tr><td>Error on read and write, with and without waits</td><td class="mono">x_dir_err, x_err_wait, c_err_after_wt</td><td>100%</td></tr>
+            <tr><td>Back-to-back in all four direction pairs</td><td class="mono">x_b2b_seq, c_back_to_back</td><td>100%</td></tr>
+            <tr><td>Every strobe class, including 0000</td><td class="mono">cp_strb, c_strb_zero</td><td>100%</td></tr>
+            <tr><td>Every PPROT value on every register</td><td class="mono">x_prot_reg</td><td>100%</td></tr>
+            <tr><td>PREADY high during SETUP</td><td class="mono">c_ready_setup</td><td>hit ≥ 1</td></tr>
+            <tr><td>Region boundary (last word)</td><td class="mono">cp_addr.last</td><td>hit ≥ 1</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout" style="margin-top:16px"><span class="tag">Watch out</span>Sample coverage in the monitor's <code>write()</code> after the transaction is complete. Sampling when the item leaves the sequencer records what you asked for, not what the DUT did; wait states and errors chosen by the completer would never show up.</div>
+    </section>
+
+    <!-- ===================================================== 12 -->
+    <section id="tb">
+      <div class="sec-head">
+        <span class="sec-no">12 · REFERENCE TESTBENCH</span>
+        <h2>RTL, interface, driver and monitor</h2>
+        <p>A small completer to verify and the minimum UVM pieces to drive it. Each one encodes a rule from this page; the comments say which.</p>
+      </div>
+      <div class="stack">
+        <script type="text/x-sv" data-title="apb_regfile.sv · APB4 completer with wait states, strobes and errors">
+module apb_regfile #(
+  parameter int NREGS = 16,
+  parameter int WAIT  = 1                 // fixed wait states per access
+)(
+  input  logic        PCLK, PRESETn,
+  input  logic        PSEL, PENABLE, PWRITE,
+  input  logic [31:0] PADDR, PWDATA,
+  input  logic [3:0]  PSTRB,
+  input  logic [2:0]  PPROT,
+  output logic        PREADY,
+  output logic [31:0] PRDATA,
+  output logic        PSLVERR
+);
+  localparam int IW = $clog2(NREGS);
+  logic [31:0]   regs [NREGS];
+  logic [7:0]    cnt;
+  logic [IW-1:0] idx;
+  logic          in_rng, access, done;
+
+  assign idx    = PADDR[IW+1:2];
+  assign in_rng = (PADDR[31:IW+2] == '0) && (PADDR[1:0] == 2'b00);
+  assign access = PSEL && PENABLE;
+  assign done   = access && PREADY;
+
+  // Count ACCESS cycles; clear on completion so back-to-back transfers restart at 0
+  always_ff @(posedge PCLK or negedge PRESETn)
+    if (!PRESETn)              cnt <= '0;
+    else if (access && !PREADY) cnt <= cnt + 8'd1;
+    else                       cnt <= '0;
+
+  assign PREADY  = access && (cnt == WAIT);
+  assign PSLVERR = done && !in_rng;               // low outside completion
+  assign PRDATA  = (access && !PWRITE && in_rng) ? regs[idx] : '0;  // zero when not selected
+
+  // Write only on the completing cycle, only the strobed byte lanes
+  always_ff @(posedge PCLK or negedge PRESETn)
+    if (!PRESETn) begin
+      foreach (regs[i]) regs[i] <= '0;
+    end else if (done && PWRITE && in_rng) begin
+      for (int b = 0; b < 4; b++)
+        if (PSTRB[b]) regs[idx][8*b +: 8] <= PWDATA[8*b +: 8];
+    end
+endmodule
+        </script>
+        <script type="text/x-sv" data-title="apb_if.sv">
+interface apb_if #(parameter int AW = 32, DW = 32) (input logic PCLK, input logic PRESETn);
+  logic            PSEL, PENABLE, PWRITE, PREADY, PSLVERR;
+  logic [AW-1:0]   PADDR;
+  logic [DW-1:0]   PWDATA, PRDATA;
+  logic [DW/8-1:0] PSTRB;
+  logic [2:0]      PPROT;
+
+  clocking drv_cb @(posedge PCLK);
+    default input #1step output #1;
+    output PSEL, PENABLE, PWRITE, PADDR, PWDATA, PSTRB, PPROT;
+    input  PREADY, PRDATA, PSLVERR;
+  endclocking
+
+  clocking mon_cb @(posedge PCLK);
+    default input #1step;
+    input PSEL, PENABLE, PWRITE, PADDR, PWDATA, PSTRB, PPROT, PREADY, PRDATA, PSLVERR;
+  endclocking
+endinterface
+        </script>
+        <div class="grid2">
+          <script type="text/x-sv" data-title="apb_master_driver.sv">
+class apb_master_driver extends uvm_driver #(apb_txn);
+  `uvm_component_utils(apb_master_driver)
+  virtual apb_if vif;
+
+  function new(string name, uvm_component parent);
+    super.new(name, parent);
+  endfunction
+
+  task run_phase(uvm_phase phase);
+    idle();
+    @(posedge vif.PRESETn);
+    forever begin
+      seq_item_port.try_next_item(req);
+      if (req == null) begin           // nothing pending: IDLE
+        idle(); @(vif.drv_cb); continue;
+      end
+      repeat (req.idle_cycles) begin idle(); @(vif.drv_cb); end
+      drive(req);                      // returns right after the completing edge
+      seq_item_port.item_done();
+    end                                // next SETUP or IDLE is driven in the same timestep
+  endtask
+
+  task idle();
+    vif.drv_cb.PSEL    <= 1'b0;
+    vif.drv_cb.PENABLE <= 1'b0;
+  endtask
+
+  task drive(apb_txn t);
+    // SETUP
+    vif.drv_cb.PSEL    <= 1'b1;
+    vif.drv_cb.PENABLE <= 1'b0;
+    vif.drv_cb.PADDR   <= t.addr;
+    vif.drv_cb.PWRITE  <= (t.dir == APB_WRITE);
+    vif.drv_cb.PWDATA  <= t.wdata;
+    vif.drv_cb.PSTRB   <= (t.dir == APB_WRITE) ? t.strb : '0;
+    vif.drv_cb.PPROT   <= t.prot;
+    @(vif.drv_cb);
+    // ACCESS: hold everything until PREADY
+    vif.drv_cb.PENABLE <= 1'b1;
+    do @(vif.drv_cb); while (vif.drv_cb.PREADY !== 1'b1);
+    t.rdata  = vif.drv_cb.PRDATA;
+    t.slverr = vif.drv_cb.PSLVERR;
+    vif.drv_cb.PENABLE <= 1'b0;        // PSEL is set by the next drive() or idle()
+  endtask
+endclass
+          </script>
+          <script type="text/x-sv" data-title="apb_monitor.sv">
+class apb_monitor extends uvm_monitor;
+  `uvm_component_utils(apb_monitor)
+  virtual apb_if vif;
+  uvm_analysis_port #(apb_txn) ap;
+
+  function new(string name, uvm_component parent);
+    super.new(name, parent);
+    ap = new("ap", this);
+  endfunction
+
+  task run_phase(uvm_phase phase);
+    int unsigned waits, idles;
+    forever begin
+      @(vif.mon_cb);
+      if (!vif.PRESETn) begin waits = 0; idles = 0; continue; end
+      if (vif.mon_cb.PSEL && vif.mon_cb.PENABLE) begin
+        if (vif.mon_cb.PREADY) begin   // completing edge: the only valid sample point
+          apb_txn t = apb_txn::type_id::create("t");
+          t.dir         = apb_dir_e'(vif.mon_cb.PWRITE);
+          t.addr        = vif.mon_cb.PADDR;
+          t.wdata       = vif.mon_cb.PWDATA;
+          t.strb        = vif.mon_cb.PSTRB;
+          t.prot        = vif.mon_cb.PPROT;
+          t.rdata       = vif.mon_cb.PRDATA;
+          t.slverr      = vif.mon_cb.PSLVERR;
+          t.wait_cycles = waits;
+          t.idle_cycles = idles;
+          ap.write(t);
+          waits = 0; idles = 0;
+        end
+        else waits++;
+      end
+      else if (!vif.mon_cb.PSEL) idles++;
+    end
+  endtask
+endclass
+          </script>
+        </div>
+        <div class="panel uvm-full" id="uvm-full">
+          <div class="uf-head">
+            <div>
+              <span class="lbl-sm">Next step · full UVM environment</span>
+              <h3>Verify an APB RAM with UVM, end to end</h3>
+              <p>The pieces above are the minimum. This playground is a complete UVM testbench for an APB RAM: an agent with a driver, a monitor and a sequencer, a scoreboard, functional coverage, and two tests. Open it, read how each piece maps to the waveforms on this page, then click Run.</p>
+            </div>
+            <a class="btn primary" id="uvm-open" href="https://edaplayground.com/x/YWUZ" target="_blank" rel="noopener">Open on EDA Playground ↗</a>
+          </div>
+          <div class="uf-grid">
+            <div class="uf-col">
+              <span class="lbl-sm">Testbench</span>
+              <p class="uf-files"><code>apb_if</code><code>apb_types</code><code>apb_seq_item</code><code>apb_sequence</code><code>apb_driver</code><code>apb_monitor</code><code>apb_agent</code><code>apb_sb</code><code>apb_coverage</code><code>apb_env</code><code>apb_pkg</code><code>testbench</code></p>
+            </div>
+            <div class="uf-col">
+              <span class="lbl-sm">Tests</span>
+              <ul class="uf-tests">
+                <li><code>apb_random_access_test</code> constrained-random reads and writes, checked by the scoreboard</li>
+                <li><code>apb_access_reserved_addr_test</code> accesses to reserved addresses, where PSLVERR is expected</li>
+              </ul>
+            </div>
+          </div>
+          <p class="small muted">Viewing the code needs no account. To run it, log in to EDA Playground with a free account, and keep a UVM version and simulator selected on the left.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================== 13 -->
+    <section id="drill">
+      <div class="sec-head">
+        <span class="sec-no">13 · DRAW IT</span>
+        <h2>Draw the waveform from memory</h2>
+        <p>Interviewers ask you to draw APB timing on a whiteboard. Practise it here: read the task, click the cells to draw each signal, then check. Grey hatched cells are don't-care, because APB never samples that signal in that cycle.</p>
+      </div>
+      <div class="dr">
+        <div class="pz-head">
+          <div class="dr-task"><span class="lvl" id="dr-lvl"></span><h3 id="dr-title"></h3></div>
+          <div id="dr-nav" class="pz-navlist" aria-label="Choose a drill"></div>
+        </div>
+        <p class="dr-text" id="dr-text"></p>
+        <p class="small muted" id="dr-meta"></p>
+        <div class="tscroll dr-wrap"><div class="dr-grid" id="dr-grid" role="group" aria-label="Your waveform"></div></div>
+        <div class="legend"><span><i class="dr-key hi"></i>high</span><span><i class="dr-key lo"></i>low</span><span><i class="dr-key dc"></i>don't care</span><span><i class="dr-key bad"></i>wrong after checking</span></div>
+        <div class="pz-fb" id="dr-fb" aria-live="polite"></div>
+        <div class="pz-actions">
+          <button type="button" class="btn primary" id="dr-check">Check my waveform</button>
+          <button type="button" class="btn" id="dr-clear">Start over</button>
+          <button type="button" class="btn" id="dr-show">Show answer</button>
+          <button type="button" class="btn" id="dr-next">Next drill →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================== 14 -->
+    <section id="exercises">
+      <div class="sec-head">
+        <span class="sec-no">14 · EXERCISES</span>
+        <h2>Find it, write it, fix it</h2>
+        <p>Three kinds of practice. The bug hunt asks <i>where</i> a waveform breaks. The lab tasks send you back to the lab. The written exercises ask you to write the SVA, constraints and coverage yourself.</p>
+      </div>
+
+      <div class="pz" id="pz">
+        <div class="pz-head">
+          <h3 id="pz-title"></h3>
+          <span class="ver" id="pz-ver"></span>
+          <div id="pz-nav" style="margin-left:auto" aria-label="Choose a puzzle"></div>
+        </div>
+        <div class="pz-fb" id="pz-fb" aria-live="polite"></div>
+        <div id="pz-wave"></div>
+        <div id="pz-ro" class="ro"></div>
+        <div class="pz-actions">
+          <button type="button" class="btn" id="pz-show">Show answer</button>
+          <button type="button" class="btn" id="pz-fix">Fix it in the lab</button>
+          <button type="button" class="btn primary" id="pz-nextb">Next puzzle</button>
+        </div>
+      </div>
+
+      <h3 class="sub">Lab tasks</h3>
+      <ol class="tasks">
+        <li><span>In the lab, choose the scenario <i>Write with waits</i>. Switch to <b>Edit by hand</b>, change <code>PADDR</code> in the second wait cycle, then press <b>Apply it to the waveform</b> next to <code>a_stable_ctrl</code> and read where it checked and where it failed.</span><label class="chk"><input type="checkbox" class="ex-done" data-ex="L1"> Done</label></li>
+        <li><span>Build write → read → write to the same address with waits 0, 2, 1 and no idle cycles between them. Predict the total cycle count before you look. (Each transfer is 2 + waits.)</span><label class="chk"><input type="checkbox" class="ex-done" data-ex="L2"> Done</label></li>
+        <li><span>In APB4, write <code>0xAABBCCDD</code> with <code>PSTRB = 0101</code> to a register holding <code>0x11223344</code>, then read it back. What value should the read return? Set PRDATA in the table to match.</span><label class="chk"><input type="checkbox" class="ex-done" data-ex="L3"> Done</label></li>
+        <li><span>Using the <b>Insert a bug</b> menu, catch all 14 bugs. For each one, say out loud why the two wrong answers still pass.</span><label class="chk"><input type="checkbox" class="ex-done" data-ex="L4"> Done</label></li>
+        <li><span>In the <b>Random stimulus</b> menu above the waveform, choose <i>Without c_strb_read</i> and find the outlined cell. Then choose <i>Without c_aligned</i>: why does no assertion fire?</span><label class="chk"><input type="checkbox" class="ex-done" data-ex="L5"> Done</label></li>
+        <li><span>Reach 100% coverage on APB4 with as few runs as you can. Which bins were hardest, and which constraint would you change to hit them faster?</span><label class="chk"><input type="checkbox" class="ex-done" data-ex="L6"> Done</label></li>
+      </ol>
+
+      <h3 class="sub">Written exercises</h3>
+
+      <details class="ex">
+        <summary><span class="exn">E1</span><h4>Assert that PWDATA is stable during a write</h4><span class="lvl lvl-b">Basic</span></summary>
+        <div class="ex-body">
+          <p>Write a property that fails if <code>PWDATA</code> changes at any point between SETUP and the completing cycle of a write. Do not use the helper wires from chapter 09.</p>
+          <details><summary>Hint</summary><p>The antecedent is "SETUP or wait state, and it is a write". Use <code>|=&gt;</code> and <code>$stable</code>.</p></details>
+          <details><summary>Solution</summary>
+            <script type="text/x-sv" data-title="E1 solution">
+property p_wdata_stable;
+  @(posedge PCLK) disable iff (!PRESETn)
+  (PSEL && PWRITE && (!PENABLE || !PREADY)) |=> $stable(PWDATA);
+endproperty
+a_wdata_stable: assert property (p_wdata_stable);
+// PSEL && (!PENABLE || !PREADY) is exactly SETUP or a wait state.
+            </script>
+          </details>
+          <div class="ex-foot"><label class="chk"><input type="checkbox" class="ex-done" data-ex="E1"> Mark as done</label></div>
+        </div>
+      </details>
+
+      <details class="ex">
+        <summary><span class="exn">E2</span><h4>Bounded completion</h4><span class="lvl lvl-b">Basic</span></summary>
+        <div class="ex-body">
+          <p>Assert that every transfer completes within 8 cycles of its SETUP cycle. Then explain why this is a testbench policy and not an APB rule.</p>
+          <details><summary>Solution</summary>
+            <script type="text/x-sv" data-title="E2 solution">
+a_complete_in_8: assert property (@(posedge PCLK) disable iff (!PRESETn)
+  (PSEL && !PENABLE) |-> ##[1:8] (PSEL && PENABLE && PREADY));
+            </script>
+            <p>The earliest completion is one cycle after SETUP, hence <code>##[1:8]</code>. APB places no limit on wait states, so this bound comes from your system requirements (for example, the CPU's bus timeout). In formal verification, a fixed bound can also hide a real deadlock beyond it.</p>
+          </details>
+          <div class="ex-foot"><label class="chk"><input type="checkbox" class="ex-done" data-ex="E2"> Mark as done</label></div>
+        </div>
+      </details>
+
+      <details class="ex">
+        <summary><span class="exn">E3</span><h4>Read-after-write constraint</h4><span class="lvl lvl-i">Intermediate</span></summary>
+        <div class="ex-body">
+          <p>Write constraints for a block of six transfers where every read targets an address that some earlier transfer in the block wrote.</p>
+          <details><summary>Hint</summary><p>The first transfer must be a write. Array reduction with <code>item.index</code> can express "exists an earlier j".</p></details>
+          <details><summary>Solution</summary>
+            <script type="text/x-sv" data-title="E3 solution">
+class apb_raw_block extends uvm_object;
+  rand apb_dir_e  dir  [6];
+  rand bit [31:0] addr [6];
+
+  constraint c_aligned { foreach (addr[i]) addr[i][1:0] == 2'b00; }
+  constraint c_raw {
+    dir[0] == APB_WRITE;
+    foreach (dir[i])
+      dir[i] == APB_READ ->
+        dir.sum() with (int'(item.index < i && item == APB_WRITE
+                             && addr[item.index] == addr[i])) > 0;
+  }
+  `uvm_object_utils(apb_raw_block)
+  function new(string name = "apb_raw_block"); super.new(name); endfunction
+endclass
+// Alternative if your solver struggles: rand int src[6] with
+// src[i] < i, dir[src[i]] == APB_WRITE, addr[i] == addr[src[i]].
+            </script>
+          </details>
+          <div class="ex-foot"><label class="chk"><input type="checkbox" class="ex-done" data-ex="E3"> Mark as done</label></div>
+        </div>
+      </details>
+
+      <details class="ex">
+        <summary><span class="exn">E4</span><h4>Unmapped addresses and a strobe corner test</h4><span class="lvl lvl-i">Intermediate</span></summary>
+        <div class="ex-body">
+          <p>Extend <code>apb_txn</code> so that about 1 in 10 addresses falls outside the mapped region, and so that write strobes are never zero, except in one directed corner test that writes with <code>strb == 0</code>.</p>
+          <details><summary>Solution</summary>
+            <script type="text/x-sv" data-title="E4 solution">
+typedef enum {MAPPED, UNMAPPED} addr_kind_e;
+
+class apb_txn_ex extends apb_txn;
+  rand addr_kind_e kind;
+  constraint c_kind { kind dist { MAPPED := 9, UNMAPPED := 1 }; }
+  // Same name as the parent's constraint, so it replaces it
+  constraint c_in_range {
+    kind == MAPPED   ->   addr inside {[base : base + size - 4]};
+    kind == UNMAPPED -> !(addr inside {[base : base + size - 1]});
+  }
+  constraint c_strb_nonzero { dir == APB_WRITE -> strb != 4'h0; }
+  `uvm_object_utils(apb_txn_ex)
+  function new(string name = "apb_txn_ex"); super.new(name); endfunction
+endclass
+
+// In the directed corner test:
+//   t.c_strb_nonzero.constraint_mode(0);
+//   if (!t.randomize() with { dir == APB_WRITE; strb == 4'h0; }) `uvm_fatal("RAND", "failed")
+            </script>
+          </details>
+          <div class="ex-foot"><label class="chk"><input type="checkbox" class="ex-done" data-ex="E4"> Mark as done</label></div>
+        </div>
+      </details>
+
+      <details class="ex">
+        <summary><span class="exn">E5</span><h4>Per-register coverage</h4><span class="lvl lvl-i">Intermediate</span></summary>
+        <div class="ex-body">
+          <p>Write a covergroup that proves each of 16 registers was both read and written, each with and without an error response. How many cross bins does it have?</p>
+          <details><summary>Solution</summary>
+            <script type="text/x-sv" data-title="E5 solution">
+covergroup cg_reg with function sample(int unsigned idx, apb_dir_e dir, bit err);
+  cp_idx : coverpoint idx { bins r[] = {[0:15]}; }
+  cp_dir : coverpoint dir;
+  cp_err : coverpoint err;
+  x_reg_dir_err : cross cp_idx, cp_dir, cp_err;   // 16 x 2 x 2 = 64 bins
+endgroup
+// If some registers can never error, exclude them with ignore_bins
+// rather than leaving bins that can never be hit.
+            </script>
+          </details>
+          <div class="ex-foot"><label class="chk"><input type="checkbox" class="ex-done" data-ex="E5"> Mark as done</label></div>
+        </div>
+      </details>
+
+      <details class="ex">
+        <summary><span class="exn">E6</span><h4>Debug this completer</h4><span class="lvl lvl-i">Intermediate</span></summary>
+        <div class="ex-body">
+          <p>This completer passed all zero-wait tests. With 2 wait states, every write to the FIFO register pushes four entries. Find the bug.</p>
+          <script type="text/x-sv" data-title="buggy completer">
+always_ff @(posedge PCLK)
+  if (PSEL && PWRITE) begin
+    if (idx == FIFO_IDX) fifo_push(PWDATA);
+    else                 regs[idx] <= PWDATA;
+  end
+          </script>
+          <details><summary>Solution</summary>
+            <p>The condition ignores <code>PENABLE</code> and <code>PREADY</code>, so it is true at the end of every cycle in which PSEL is high: 1 SETUP + 2 wait states + 1 completing cycle = 4 pushes. With zero waits it still pushes twice, but a test that only checks the last value written to a plain register never notices. Writes must happen only on the completing edge:</p>
+            <script type="text/x-sv" data-title="E6 fix">
+always_ff @(posedge PCLK)
+  if (PSEL && PENABLE && PREADY && PWRITE) begin
+    if (idx == FIFO_IDX) fifo_push(PWDATA);
+    else                 regs[idx] <= PWDATA;
+  end
+            </script>
+            <p>Lesson for the testbench: randomise wait states from day one, or this class of bug stays hidden.</p>
+          </details>
+          <div class="ex-foot"><label class="chk"><input type="checkbox" class="ex-done" data-ex="E6"> Mark as done</label></div>
+        </div>
+      </details>
+
+      <details class="ex">
+        <summary><span class="exn">E7</span><h4>Cycle counting</h4><span class="lvl lvl-b">Basic</span></summary>
+        <div class="ex-body">
+          <p>Eight back-to-back transfers have wait states <code>[0, 1, 0, 2, 0, 0, 3, 0]</code>. How many PCLK cycles do they take, and what fraction of cycles complete a transfer?</p>
+          <details><summary>Solution</summary><p>Each transfer is 2 + waits cycles: 8 × 2 + (0+1+0+2+0+0+3+0) = 16 + 6 = <b>22 cycles</b>. Eight completions in 22 cycles is about <b>36%</b>, against the zero-wait best case of 50%.</p></details>
+          <div class="ex-foot"><label class="chk"><input type="checkbox" class="ex-done" data-ex="E7"> Mark as done</label></div>
+        </div>
+      </details>
+
+      <details class="ex">
+        <summary><span class="exn">E8</span><h4>Debug this driver</h4><span class="lvl lvl-a">Advanced</span></summary>
+        <div class="ex-body">
+          <p>Find every problem in this driver task.</p>
+          <script type="text/x-sv" data-title="buggy driver">
+task drive(apb_txn t);
+  vif.PSEL = 1; vif.PENABLE = 0;
+  vif.PADDR = t.addr; vif.PWRITE = t.dir; vif.PWDATA = t.wdata;
+  @(posedge vif.PCLK);
+  vif.PENABLE = 1;
+  @(posedge vif.PCLK);
+  t.rdata = vif.PRDATA;
+  vif.PSEL = 0; vif.PENABLE = 0;
+endtask
+          </script>
+          <details><summary>Solution</summary>
+            <ul class="clean">
+              <li>No loop on <code>PREADY</code>: it leaves ACCESS after one cycle, breaking WAIT_HOLD with any completer that inserts waits, and samples <code>PRDATA</code> before it is valid.</li>
+              <li>Blocking assignments straight to the interface at the clock edge race with the DUT. Use a clocking block and <code>&lt;=</code>.</li>
+              <li><code>PSEL</code> is always dropped, so back-to-back transfers are never generated.</li>
+              <li><code>PSTRB</code> and <code>PPROT</code> are never driven (X on an APB4 bus), and <code>PSLVERR</code> is never captured.</li>
+            </ul>
+            <p>Compare with <code>apb_master_driver</code> in chapter 12.</p>
+          </details>
+          <div class="ex-foot"><label class="chk"><input type="checkbox" class="ex-done" data-ex="E8"> Mark as done</label></div>
+        </div>
+      </details>
+
+      <details class="ex">
+        <summary><span class="exn">E9</span><h4>Assert the PWAKEUP recommendation</h4><span class="lvl lvl-a">Advanced</span></summary>
+        <div class="ex-body">
+          <p>For APB5, write a warning-level property that PWAKEUP is high in every cycle where PSEL is high, and a cover property for PWAKEUP leading PSEL by at least two cycles.</p>
+          <details><summary>Solution</summary>
+            <script type="text/x-sv" data-title="E9 solution">
+a_wake_during_xfer: assert property (@(posedge PCLK) disable iff (!PRESETn)
+  PSEL |-> PWAKEUP)
+  else $warning("PWAKEUP low during a transfer");
+
+c_wake_lead_2: cover property (@(posedge PCLK) disable iff (!PRESETn)
+  (!PSEL && PWAKEUP) [*2] ##1 $rose(PSEL));
+            </script>
+          </details>
+          <div class="ex-foot"><label class="chk"><input type="checkbox" class="ex-done" data-ex="E9"> Mark as done</label></div>
+        </div>
+      </details>
+
+      <details class="ex">
+        <summary><span class="exn">E10</span><h4>APB4 requester, APB3 completer</h4><span class="lvl lvl-a">Advanced</span></summary>
+        <div class="ex-body">
+          <p>You are designing the adapter between an APB4 requester and an APB3 completer. What do you do with a write where <code>PSTRB</code> is not all ones? Give two options and their costs, and the test you would write for each.</p>
+          <details><summary>Discussion</summary>
+            <ul class="clean">
+              <li><b>Reject:</b> answer with <code>PSLVERR</code> without forwarding the write. Cheap and safe; software must avoid sub-word writes to that completer. Test: partial write returns error and the register is unchanged.</li>
+              <li><b>Read-modify-write:</b> read the word, merge the strobed bytes, write it back. Transparent to software, but two transfers, not atomic, and wrong for registers with read side effects. Test: partial writes preserve the other bytes; read-to-clear registers are excluded.</li>
+              <li>Passing it through unchanged is the bug from chapter 05's interop trap.</li>
+            </ul>
+          </details>
+          <div class="ex-foot"><label class="chk"><input type="checkbox" class="ex-done" data-ex="E10"> Mark as done</label></div>
+        </div>
+      </details>
+    </section>
+
+    <!-- ===================================================== 14 -->
+    <section id="quiz">
+      <div class="sec-head">
+        <span class="sec-no">15 · QUIZ</span>
+        <h2>Test yourself</h2>
+        <p>26 questions from signal basics to SVA and testbench design, in random order. Each answer comes with an explanation. Your best score on a full set of ten or more is kept in this browser.</p>
+      </div>
+      <div class="quiz">
+        <div class="seg" id="quiz-level" role="group" aria-label="Question level">
+          <button type="button" data-lvl="all" aria-pressed="true">All levels</button>
+          <button type="button" data-lvl="b" aria-pressed="false">Basic</button>
+          <button type="button" data-lvl="i" aria-pressed="false">Intermediate</button>
+          <button type="button" data-lvl="a" aria-pressed="false">Advanced</button>
+        </div>
+        <div id="quiz-box" class="qbox" aria-live="polite"></div>
+      </div>
+      <div class="cardbox" id="cardbox">
+        <h3 class="sub">Your completion card</h3>
+        <p class="muted">A shareable image of your progress on this page: chapters, bugs caught, waveforms drawn, bug hunts and your best quiz score. It is a record of practice, not a certificate.</p>
+        <div class="cd-row">
+          <label class="field" for="cd-name">Name on the card <input id="cd-name" maxlength="40" autocomplete="name" placeholder="Your name"></label>
+          <button type="button" class="btn primary" id="cd-make">Make my card</button>
+        </div>
+        <img id="cd-img" class="cd-img" alt="Your PosEdge APB Lab completion card" hidden>
+        <div class="cd-acts" id="cd-acts" hidden>
+          <button type="button" class="btn" id="cd-save">Save the image</button>
+          <button type="button" class="btn" id="cd-post">Copy a LinkedIn post</button>
+        </div>
+        <p class="small muted" id="cd-note"></p>
+      </div>
+
+    </section>
+
+    <footer class="site-foot" id="site-foot">
+      <div class="sf-grid">
+        <div class="sf-about">
+          <div class="sf-brand"><svg width="36" height="36" viewBox="0 0 300 300" aria-hidden="true"><rect width="300" height="300" rx="66" fill="var(--accent)"/><path d="M44 214 H138 V86 H256" fill="none" stroke="var(--accent-ink)" stroke-width="22" stroke-linejoin="round" stroke-linecap="round"/><path d="M138 116 L108 168 H168 Z" fill="#ffc94d" stroke="#ffc94d" stroke-width="8" stroke-linejoin="round"/></svg><b>PosEdge</b></div>
+          <p>Free, interactive labs for learning chip verification, one rising edge at a time. <span id="sf-by">Built by a DV engineer for students, freshers and engineers preparing for verification roles.</span></p>
+          <p class="sf-links" id="sf-links"></p>
+        </div>
+        <div class="sf-next" id="sf-next">
+          <span class="lbl-sm">Coming next</span>
+          <p><b>AHB and AXI4-Lite labs</b>, built the same way: scenarios, bugs, assertions and drills.</p>
+          <a class="btn primary" id="sf-notify" href="#" target="_blank" rel="noopener" hidden>Tell me when they're out</a>
+          <p class="small" id="sf-follow"></p>
+        </div>
+      </div>
+      <p class="sf-fine">Based on the Arm AMBA APB Protocol Specification (ARM IHI 0024, issues A to E). This page explains and simplifies; for normative wording, signal widths and the exact rules of each issue, read the specification. The protocol checker on this page mirrors the SVA module in chapter 09 and runs entirely in your browser.</p>
+      <p class="sf-fine"><b>© 2026 PosEdge.</b> Free to use for learning and teaching. Please share the link; don't copy, republish or sell this site or its content without permission.</p>
+      <p class="sf-fine">AMBA and APB are trademarks of Arm Limited. PosEdge is an independent learning project and is not affiliated with or endorsed by Arm.</p>
+      <p class="sf-fine"><b>Privacy.</b> Your progress is saved only in this browser. There are no accounts, and this site collects no personal data.</p>
+    </footer>
+
+  </div>
+  </main>
+</div>
+<div class="vg" id="vg">
+  <div class="vg-panel" id="vg-panel" hidden role="region" aria-label="Voice guide">
+    <div class="vg-top"><span class="lbl-sm">Voice guide</span><b id="vg-sec"></b><button type="button" class="icon-btn" id="vg-close" aria-label="Close the voice guide">×</button></div>
+    <p class="vg-cap" id="vg-cap" aria-live="polite"></p>
+    <p class="vg-na small" id="vg-na" hidden>This browser cannot speak here, so the guide shows the words instead.</p>
+    <div class="vg-ctl">
+      <button type="button" class="btn sm" id="vg-prev">◀ Back</button>
+      <button type="button" class="btn sm primary" id="vg-play" aria-pressed="false">▶ Play</button>
+      <button type="button" class="btn sm" id="vg-next">Next section ▶</button>
+    </div>
+    <label class="switch sm" for="vg-follow"><input type="checkbox" id="vg-follow"> Read each section as I scroll</label>
+    <div class="vg-opts">
+      <label class="field" for="vg-rate">Speed <select id="vg-rate"><option value="0.85">Slow</option><option value="1" selected>Normal</option><option value="1.15">Fast</option></select></label>
+      <label class="field" id="vg-voice-wrap" for="vg-voice">Voice <select id="vg-voice"></select></label>
+    </div>
+  </div>
+  <button type="button" class="vg-fab" id="vg-fab" aria-expanded="false" aria-controls="vg-panel">
+    <svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6h3l4-3v10l-4-3H2z" fill="currentColor"/><path d="M11 5.5a3.5 3.5 0 0 1 0 5M12.8 3.5a6 6 0 0 1 0 9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    <span>Voice guide</span>
+  </button>
+</div>
+<script src="apb.js"></script>
+</body>
+</html>

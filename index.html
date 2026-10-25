@@ -13,6 +13,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="canonical" href="https://2023ht80265-prog.github.io/posedge/">
 <title>APB Protocol: Interactive Waveforms, SVA and UVM | PosEdge APB Lab</title>
 <meta name="description" content="Learn the AMBA APB protocol (APB2 to APB5) with live waveforms. Insert bugs, see which SVA assertion catches them, and run a full APB UVM testbench. Free.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -110,6 +111,17 @@ h2{font-size:clamp(30px,4.4vw,44px);line-height:1;font-weight:800;font-stretch:7
 .uf-tests{margin:6px 0 0;padding-left:18px;font-size:14px}
 .uf-tests li{margin:0 0 6px}
 .uf-tests code{font:500 12.5px var(--f-mono);display:block;width:fit-content;max-width:100%;overflow-wrap:anywhere;color:var(--accent)}
+.faq{display:grid;gap:10px}
+.faq-q{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.faq-q>summary{list-style:none;cursor:pointer;padding:14px 16px;display:flex;gap:12px;align-items:baseline;justify-content:space-between}
+.faq-q>summary::-webkit-details-marker{display:none}
+.faq-q>summary::after{content:"+";font:600 18px var(--f-mono);color:var(--accent);flex:none}
+.faq-q[open]>summary::after{content:"−"}
+.faq-q>summary h3{margin:0;font:600 16px var(--f-body);line-height:1.4}
+.faq-q[open]>summary{border-bottom:1px solid var(--line)}
+.faq-q>p{margin:0;padding:14px 16px 16px;line-height:1.6}
+.faq-go{white-space:nowrap;font-weight:600}
+.hero h1 .h1-sub{display:block;margin-top:10px;font:600 clamp(15px,2.2vw,19px)/1.3 var(--f-body);letter-spacing:0;color:var(--muted);text-transform:none}
 .callout{background:var(--surface-2);border-radius:var(--r);padding:14px 16px;font-size:14.5px}
 .callout .tag{font:600 10.5px var(--f-mono);letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);margin-right:8px}
 ul.clean{margin:0;padding-left:1.1em}
@@ -862,6 +874,147 @@ label.field{min-width:0;flex-wrap:wrap}
   *{transition:none!important;animation:none!important}
 }
 </style>
+<script type="application/ld+json">
+[
+ {
+  "@context": "https://schema.org",
+  "@type": "LearningResource",
+  "name": "PosEdge APB Lab",
+  "description": "Free interactive tutorial for the AMBA APB protocol (APB2 to APB5): live waveforms, protocol bugs, SystemVerilog assertions, constraints, coverage and a UVM testbench.",
+  "url": "https://2023ht80265-prog.github.io/posedge/",
+  "inLanguage": "en",
+  "isAccessibleForFree": true,
+  "learningResourceType": [
+   "Interactive tutorial",
+   "Quiz",
+   "Exercise"
+  ],
+  "teaches": [
+   "AMBA APB protocol",
+   "APB wait states and PSLVERR",
+   "SystemVerilog Assertions (SVA)",
+   "Constrained-random verification",
+   "Functional coverage",
+   "UVM testbench for APB"
+  ],
+  "educationalLevel": "Beginner to intermediate",
+  "audience": {
+   "@type": "EducationalAudience",
+   "educationalRole": "student"
+  },
+  "provider": {
+   "@type": "Organization",
+   "name": "PosEdge",
+   "url": "https://2023ht80265-prog.github.io/posedge/",
+   "sameAs": [
+    "https://www.linkedin.com/company/145336259/"
+   ]
+  }
+ },
+ {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+   {
+    "@type": "Question",
+    "name": "What is the AMBA APB protocol?",
+    "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "APB (Advanced Peripheral Bus) is the simplest bus in Arm's AMBA family. It connects low-bandwidth peripherals, such as timers, UARTs, GPIO and configuration registers, to the rest of a chip. APB is not pipelined: every transfer takes at least two clock cycles, a SETUP cycle and an ACCESS cycle. It usually sits behind a bridge from a faster bus such as AHB or AXI."
+    }
+   },
+   {
+    "@type": "Question",
+    "name": "What are the APB signals?",
+    "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "Every version has PCLK, PRESETn, PSELx, PENABLE, PADDR, PWRITE, PWDATA and PRDATA. APB3 adds PREADY and PSLVERR. APB4 adds PPROT and PSTRB. APB5 adds PWAKEUP, the user signals (PAUSER, PWUSER, PRUSER, PBUSER) and optional parity check signals."
+    }
+   },
+   {
+    "@type": "Question",
+    "name": "What are the states of the APB state machine?",
+    "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "IDLE, SETUP and ACCESS. In SETUP, PSEL is high and PENABLE is low, and SETUP always lasts exactly one cycle. In ACCESS, PSEL and PENABLE are both high. The transfer completes on the rising edge where PSEL, PENABLE and PREADY are all high. The bus then returns to IDLE, or goes straight to SETUP if another transfer is pending."
+    }
+   },
+   {
+    "@type": "Question",
+    "name": "What is a wait state in APB?",
+    "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "A completer that needs more time holds PREADY low during ACCESS. Each cycle with PREADY low is a wait state. During wait states the requester must keep PSEL, PENABLE, PADDR, PWRITE and PWDATA stable, and also PSTRB and PPROT from APB4 onward. Wait states exist from APB3 onward, because APB2 has no PREADY."
+    }
+   },
+   {
+    "@type": "Question",
+    "name": "When is PSLVERR valid?",
+    "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "Only in the last cycle of a transfer, when PSEL, PENABLE and PREADY are all high. Outside that cycle it is not sampled, and Arm recommends, but does not require, driving it low. An error on a read means PRDATA may not be valid. An error on a write does not guarantee that the peripheral's register was left unchanged."
+    }
+   },
+   {
+    "@type": "Question",
+    "name": "Can PADDR change during a wait state?",
+    "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "No. From SETUP until the transfer completes, the requester must hold the address, control and write data stable. A moving address is a classic bug: the completer samples PADDR at the completing edge, so the write lands at the wrong address. An SVA check with $stable catches it."
+    }
+   },
+   {
+    "@type": "Question",
+    "name": "What is the difference between APB2, APB3, APB4 and APB5?",
+    "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "APB2 (AMBA 2) has a fixed two-cycle transfer, with no wait states and no error response. APB3 adds PREADY for wait states and PSLVERR for errors. APB4 adds PPROT for protection attributes and PSTRB for byte-level writes. APB5 adds PWAKEUP, user sideband signals and optional parity protection."
+    }
+   },
+   {
+    "@type": "Question",
+    "name": "What is the difference between APB and AHB?",
+    "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "AHB is a pipelined, higher-performance bus with burst transfers, used for memories and fast components. APB is non-pipelined and much simpler, which keeps peripherals small and low-power. A typical chip connects its APB peripherals through an AHB-to-APB or AXI-to-APB bridge."
+    }
+   },
+   {
+    "@type": "Question",
+    "name": "What does PSTRB do in APB4?",
+    "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "PSTRB has one bit per byte lane of PWDATA. On a write, only the byte lanes whose strobe bit is high are updated. On a read, the requester must drive all PSTRB bits low."
+    }
+   },
+   {
+    "@type": "Question",
+    "name": "Is PREADY sampled in the SETUP phase?",
+    "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "No. PREADY only matters in ACCESS. A completer may drive it high early, but the transfer cannot complete before the ACCESS cycle, so every transfer still takes at least two cycles."
+    }
+   },
+   {
+    "@type": "Question",
+    "name": "How do you verify an APB interface?",
+    "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "Usually with three things. An SVA protocol checker enforces the timing rules, such as stable signals during wait states and SETUP always followed by ACCESS. Constrained-random stimulus varies wait states, errors, strobes and back-to-back transfers. Functional coverage proves those cases were actually hit. In UVM, this lives in an APB agent (driver, monitor and sequencer) plus a scoreboard."
+    }
+   },
+   {
+    "@type": "Question",
+    "name": "Which assertions should an APB protocol checker have?",
+    "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "At minimum: no PENABLE without PSEL; PENABLE only rises right after a SETUP cycle; SETUP is always followed by ACCESS to the same peripheral; address, control and write data stay stable until the transfer ends; PENABLE goes low after every completed transfer; reads never carry byte strobes; PSLVERR is only high in the completing cycle; and control signals never carry X or Z while selected."
+    }
+   }
+  ]
+ }
+]
+</script>
 </head>
 <body>
 
@@ -893,6 +1046,7 @@ label.field{min-width:0;flex-wrap:wrap}
       <a href="#drill"><span>13</span>Draw it</a>
       <a href="#exercises"><span>14</span>Exercises</a>
       <a href="#quiz"><span>15</span>Quiz</a>
+      <a href="#faq"><span>?</span>FAQ</a>
     </nav>
     <div class="prog" aria-label="Your progress, saved in this browser">
       <span class="lbl-sm">Your progress</span>
@@ -918,7 +1072,7 @@ label.field{min-width:0;flex-wrap:wrap}
 
     <header class="hero" id="top">
       <p class="eyebrow">Learn chip verification, one rising edge at a time</p>
-      <h1>PosEdge<br><em>APB Lab</em></h1>
+      <h1>PosEdge<br><em>APB Lab</em><span class="h1-sub">An interactive AMBA APB protocol tutorial, from waveforms to SVA and UVM</span></h1>
       <p class="lede">APB is the simplest bus in the AMBA family. Three states, two cycles per transfer, five rules. You can learn the whole protocol in under an hour and be ready to verify it the same day.</p>
       <ul class="facts">
         <li><b>3</b><span>states</span></li>
@@ -2295,12 +2449,72 @@ c_wake_lead_2: cover property (@(posedge PCLK) disable iff (!PRESETn)
 
     </section>
 
+    <!-- ===================================================== FAQ -->
+    <section id="faq">
+      <div class="sec-head">
+        <span class="sec-no">FAQ</span>
+        <h2>APB protocol: common questions</h2>
+        <p>Quick answers to what people most often ask about AMBA APB and how to verify it. Each answer links to the part of the lab that shows it on a waveform.</p>
+      </div>
+      <div class="faq">
+        <details class="faq-q">
+          <summary><h3>What is the AMBA APB protocol?</h3></summary>
+          <p>APB (Advanced Peripheral Bus) is the simplest bus in Arm's AMBA family. It connects low-bandwidth peripherals, such as timers, UARTs, GPIO and configuration registers, to the rest of a chip. APB is not pipelined: every transfer takes at least two clock cycles, a SETUP cycle and an ACCESS cycle. It usually sits behind a bridge from a faster bus such as AHB or AXI. <a href="#basics" class="faq-go">Start with the basics →</a></p>
+        </details>
+        <details class="faq-q">
+          <summary><h3>What are the APB signals?</h3></summary>
+          <p>Every version has <code>PCLK</code>, <code>PRESETn</code>, <code>PSELx</code>, <code>PENABLE</code>, <code>PADDR</code>, <code>PWRITE</code>, <code>PWDATA</code> and <code>PRDATA</code>. APB3 adds <code>PREADY</code> and <code>PSLVERR</code>. APB4 adds <code>PPROT</code> and <code>PSTRB</code>. APB5 adds <code>PWAKEUP</code>, the user signals (<code>PAUSER</code>, <code>PWUSER</code>, <code>PRUSER</code>, <code>PBUSER</code>) and optional parity check signals. <a href="#signals" class="faq-go">See every signal →</a></p>
+        </details>
+        <details class="faq-q">
+          <summary><h3>What are the states of the APB state machine?</h3></summary>
+          <p>IDLE, SETUP and ACCESS. In SETUP, <code>PSEL</code> is high and <code>PENABLE</code> is low, and SETUP always lasts exactly one cycle. In ACCESS, <code>PSEL</code> and <code>PENABLE</code> are both high. The transfer completes on the rising edge where <code>PSEL</code>, <code>PENABLE</code> and <code>PREADY</code> are all high. The bus then returns to IDLE, or goes straight to SETUP if another transfer is pending. <a href="#fsm" class="faq-go">Explore the state machine →</a></p>
+        </details>
+        <details class="faq-q">
+          <summary><h3>What is a wait state in APB?</h3></summary>
+          <p>A completer that needs more time holds <code>PREADY</code> low during ACCESS. Each cycle with <code>PREADY</code> low is a wait state. During wait states the requester must keep <code>PSEL</code>, <code>PENABLE</code>, <code>PADDR</code>, <code>PWRITE</code> and <code>PWDATA</code> stable, and also <code>PSTRB</code> and <code>PPROT</code> from APB4 onward. Wait states exist from APB3 onward, because APB2 has no <code>PREADY</code>. <a href="#scenario-apb3-wait-w" class="faq-go">Watch a write with two wait states →</a></p>
+        </details>
+        <details class="faq-q">
+          <summary><h3>When is PSLVERR valid?</h3></summary>
+          <p>Only in the last cycle of a transfer, when <code>PSEL</code>, <code>PENABLE</code> and <code>PREADY</code> are all high. Outside that cycle it is not sampled, and Arm recommends, but does not require, driving it low. An error on a read means <code>PRDATA</code> may not be valid. An error on a write does not guarantee that the peripheral's register was left unchanged. <a href="#scenario-apb3-err" class="faq-go">Watch an error response →</a></p>
+        </details>
+        <details class="faq-q">
+          <summary><h3>Can PADDR change during a wait state?</h3></summary>
+          <p>No. From SETUP until the transfer completes, the requester must hold the address, control and write data stable. A moving address is a classic bug: the completer samples <code>PADDR</code> at the completing edge, so the write lands at the wrong address. An SVA check with <code>$stable</code> catches it. <a href="#bug-addr-wander" class="faq-go">Insert this bug and catch it →</a></p>
+        </details>
+        <details class="faq-q">
+          <summary><h3>What is the difference between APB2, APB3, APB4 and APB5?</h3></summary>
+          <p>APB2 (AMBA 2) has a fixed two-cycle transfer, with no wait states and no error response. APB3 adds <code>PREADY</code> for wait states and <code>PSLVERR</code> for errors. APB4 adds <code>PPROT</code> for protection attributes and <code>PSTRB</code> for byte-level writes. APB5 adds <code>PWAKEUP</code>, user sideband signals and optional parity protection. <a href="#versions" class="faq-go">Compare the versions →</a></p>
+        </details>
+        <details class="faq-q">
+          <summary><h3>What is the difference between APB and AHB?</h3></summary>
+          <p>AHB is a pipelined, higher-performance bus with burst transfers, used for memories and fast components. APB is non-pipelined and much simpler, which keeps peripherals small and low-power. A typical chip connects its APB peripherals through an AHB-to-APB or AXI-to-APB bridge.</p>
+        </details>
+        <details class="faq-q">
+          <summary><h3>What does PSTRB do in APB4?</h3></summary>
+          <p><code>PSTRB</code> has one bit per byte lane of <code>PWDATA</code>. On a write, only the byte lanes whose strobe bit is high are updated. On a read, the requester must drive all <code>PSTRB</code> bits low. <a href="#scenario-apb4-strb" class="faq-go">Watch a partial write →</a></p>
+        </details>
+        <details class="faq-q">
+          <summary><h3>Is PREADY sampled in the SETUP phase?</h3></summary>
+          <p>No. <code>PREADY</code> only matters in ACCESS. A completer may drive it high early, but the transfer cannot complete before the ACCESS cycle, so every transfer still takes at least two cycles. <a href="#scenario-ready-early" class="faq-go">Watch an early PREADY →</a></p>
+        </details>
+        <details class="faq-q">
+          <summary><h3>How do you verify an APB interface?</h3></summary>
+          <p>Usually with three things. An SVA protocol checker enforces the timing rules, such as stable signals during wait states and SETUP always followed by ACCESS. Constrained-random stimulus varies wait states, errors, strobes and back-to-back transfers. Functional coverage proves those cases were actually hit. In UVM, this lives in an APB agent (driver, monitor and sequencer) plus a scoreboard. <a href="#tb" class="faq-go">See the reference testbench →</a></p>
+        </details>
+        <details class="faq-q">
+          <summary><h3>Which assertions should an APB protocol checker have?</h3></summary>
+          <p>At minimum: no <code>PENABLE</code> without <code>PSEL</code>; <code>PENABLE</code> only rises right after a SETUP cycle; SETUP is always followed by ACCESS to the same peripheral; address, control and write data stay stable until the transfer ends; <code>PENABLE</code> goes low after every completed transfer; reads never carry byte strobes; <code>PSLVERR</code> is only high in the completing cycle; and control signals never carry X or Z while selected. <a href="#sva" class="faq-go">Try all 19 assertions →</a></p>
+        </details>
+      </div>
+    </section>
+
     <footer class="site-foot" id="site-foot">
       <div class="sf-grid">
         <div class="sf-about">
           <div class="sf-brand"><svg width="36" height="36" viewBox="0 0 300 300" aria-hidden="true"><rect width="300" height="300" rx="66" fill="var(--accent)"/><path d="M44 214 H138 V86 H256" fill="none" stroke="var(--accent-ink)" stroke-width="22" stroke-linejoin="round" stroke-linecap="round"/><path d="M138 116 L108 168 H168 Z" fill="#ffc94d" stroke="#ffc94d" stroke-width="8" stroke-linejoin="round"/></svg><b>PosEdge</b></div>
           <p>Free, interactive labs for learning chip verification, one rising edge at a time. <span id="sf-by">Built by a DV engineer for students, freshers and engineers preparing for verification roles.</span></p>
           <p class="sf-links" id="sf-links"></p>
+          <p class="small"><a href="#faq">APB protocol FAQ</a> · quick answers to the most common questions.</p>
         </div>
         <div class="sf-next" id="sf-next">
           <span class="lbl-sm">Coming next</span>
